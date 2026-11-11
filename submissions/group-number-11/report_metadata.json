@@ -17,7 +17,7 @@
   "previous_public_auc": 0.92433,
   "new_public_auc": null,
   "private_auc": null,
-  "pr_url": null,
+  "pr_url": "https://github.com/sekhari/human-or-ai-submissions/pull/18",
   "contributions": "Yilin Gao (yg695) led model development and comparison (Q1): data inspection, the shared split, representations, baseline comparisons and tuning. Ansh Raj Bhargava (ab3396) led the unlabeled-data and improvement experiments (Q3 and Q5). Yingzi Gu (yg667) led learning curves, subgroup evaluation and error analysis (Q2 and Q4). All three members also trained models and explored stronger configurations. These roles were supplied by the team; the implementation and experiment execution in this rebuilt branch were assisted by Codex.",
   "report_date": "November 10, 2026",
   "repository_url": "https://github.com/Gracee-Gu/human-or-ai-submissions"

@@ -3,6 +3,8 @@
 Ansh Raj Bhargava (ab3396), Yilin Gao (yg695), Yingzi Gu (yg667).
 Kaggle team name: **Group Number 11**. Branch: `Group11retry`.
 
+Fork: [Gracee-Gu/human-or-ai-submissions](https://github.com/Gracee-Gu/human-or-ai-submissions/tree/Group11retry). Course draft PR: [#18](https://github.com/sekhari/human-or-ai-submissions/pull/18).
+
 ## Result and artifacts
 
 The selected blend achieves **0.997975 AUROC** on the fixed, stratified 2,000-row validation set. This is a validation result, not a Kaggle score. Previous user-reported public score: **0.92433** (earlier model). Public/private scores for this new model are pending. No Kaggle submission has been made by this code. The user reported that submission becomes available on **November 11, 2026, at 7:00 p.m. America/New_York**; the actual platform reset must be checked on Kaggle.
@@ -65,8 +67,8 @@ Upload `output/submission.csv` manually once Kaggle allows another submission. T
 
 ```bash
 python submissions/group-number-11/build_report.py
-cd submissions/group-number-11/report
-tectonic main.tex
+(cd submissions/group-number-11/report && tectonic main.tex)
+python submissions/group-number-11/package.py
 ```
 
 The report follows every Q0--Q6 response in the supplied assignment. Upload `output/group11_overleaf.zip` to Overleaf after packaging with `python submissions/group-number-11/package.py`. Overleaf uses pdfLaTeX; the project includes the generated figures. Re-run report generation/compilation/packaging after adding the verified PR URL, leaderboard scores or team contribution details to `report_metadata.json`.
