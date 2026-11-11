@@ -27,6 +27,17 @@ FUNCTION_WORDS = ('the a an and or but if while because although however therefo
     'there here some any all each every both such into about over under through').split()
 
 
+def style_feature_names():
+    return (['log_characters','log_words','type_token_ratio','hapax_ratio',
+        'word_length_mean','word_length_std','word_length_median',
+        'sentence_words_mean','sentence_words_std','sentence_words_max','sentences_per_word',
+        'initial_uppercase_ratio','all_uppercase_ratio','digit_ratio','non_ascii_ratio',
+        'lines_per_word','blank_lines_per_word','long_word_ratio','short_word_ratio','repeated_type_ratio']
+        + [f'character_{repr(p)}' for p in string.punctuation + '“”‘’–—\n\t']
+        + [f'function_{w}' for w in FUNCTION_WORDS]
+        + ['contractions','parentheticals','bracketed_spans','urls','four_digit_numbers','list_start','multiple_spaces'])
+
+
 def style_features(texts):
     rows = []
     for raw in texts:

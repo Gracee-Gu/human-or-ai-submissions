@@ -82,7 +82,8 @@ def main():
             record(name,m,xt.multiply(ratio),xv.multiply(ratio),time.perf_counter()-start+feature_seconds,
                    {'representation':representation,'kind':'nb','C':c})
             fitted[name]=(m,ratio)
-    xs=style_features(df.text); us=style_features(unl.text)
+    start=time.perf_counter();xs=style_features(df.text)
+    style_feature_seconds=time.perf_counter()-start
     for leaves in [7,15,31]:
         for estimators in [300,700]:
             start=time.perf_counter()
@@ -90,7 +91,7 @@ def main():
                 max_depth=-1,min_child_samples=40,colsample_bytree=.85,reg_lambda=5,
                 verbosity=-1,n_jobs=4,random_state=SEED,deterministic=True)
             m.fit(xs[tr],y[tr])
-            record(f'style_{leaves}_{estimators}',m,xs[tr],xs[va],time.perf_counter()-start,
+            record(f'style_{leaves}_{estimators}',m,xs[tr],xs[va],time.perf_counter()-start+style_feature_seconds,
                    {'representation':'style','leaves':leaves,'estimators':estimators})
     # Select each family by validation AUC, then compare a small prespecified blend grid.
     best={r:max((a for a in records if a['config']['representation']==r),key=lambda a:a['val_auc'])['name'] for r in ['word','char','style']}
