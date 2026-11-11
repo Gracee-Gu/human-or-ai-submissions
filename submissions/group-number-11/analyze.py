@@ -58,7 +58,7 @@ def main():
             text=df.set_index('id').loc[int(r.id),'text']
             errors.append({'id':int(r.id),'type':typ,'probability':r.probability,
                 'words':int(r.words),'excerpt':normalize(text)[:800]})
-    (out/'errors_for_review.json').write_text(json.dumps(errors,indent=2,ensure_ascii=False))
+    (ROOT/'artifacts/errors_for_review.json').write_text(json.dumps(errors,indent=2,ensure_ascii=False))
     (out/'analysis.json').write_text(json.dumps(summary,indent=2));print(json.dumps(summary,indent=2))
     plt.rcParams.update({'font.size':10,'axes.spines.top':False,'axes.spines.right':False,
                          'axes.prop_cycle':plt.cycler(color=['#236B82','#C46B36','#19334C'])})

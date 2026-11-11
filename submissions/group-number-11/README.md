@@ -11,11 +11,11 @@ The selected blend achieves **0.997975 AUROC** on the fixed, stratified 2,000-ro
 - `artifacts/final.joblib`: locally trained model, refit on all 10,000 labeled examples (excluded from Git).
 - `report/main.tex`, `report/main.pdf`: editable Overleaf source and compiled report.
 - `output/group11_overleaf.zip`: upload-ready LaTeX project (local).
-- `results/`: actual experiments, fixed split, validation predictions, robustness diagnostics and data checksums. CSV logs contain IDs/results, not passages.
+- `results/`: actual experiments, fixed split, validation predictions, robustness diagnostics and data checksums. CSV evaluation logs contain IDs/results, not passages, and are generated locally (ignored by Git).
 
 ## Setup
 
-Run commands from the repository root. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training, no GPU/pretrained weights/external model services. A Python 3.11+ environment with current compatible wheels is recommended. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
+Run commands from the repository root. After setup, `bash submissions/group-number-11/reproduce.sh DATA_DIR` runs the full pipeline. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training, no GPU/pretrained weights/external model services. Python 3.14.2 reproduces the tested environment; other Python versions require compatible package wheels. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
 
 ```bash
 python3 -m venv .venv
@@ -30,9 +30,11 @@ Keep the original Kaggle CSVs in `cornell-tech-cs-5785-combined-2026-ai-vs-human
 ```bash
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/train.py \
   --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text --final
-python submissions/group-number-11/analyze.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/robustness.py \
+  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
+OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/improve.py \
+  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text --final
+python submissions/group-number-11/analyze.py \
   --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 ```
 
@@ -41,6 +43,8 @@ OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/robu
 The final blend is 0.125 word SVM (C=1), 0.125 character LR (C=16), and 0.75 style LightGBM (31 leaves, 700 trees). The SVM margin is mapped through a sigmoid; this is **not** calibrated probability estimation. The ensemble probabilities are optimized for ranking/AUROC, not individual authorship certainty.
 
 The learning curve uses word LR C=4 with a freshly fitted vocabulary at each of 500/1,000/2,000/5,000/8,000 labeled examples. The unlabeled experiment learns word vocabulary and IDF on 8,000 training + 3,000 unlabeled texts and trains LR C=4 only on true training labels. It excludes validation text/labels and test text from fitting and does not improve validation AUC, so it is not used in the final model.
+
+`improve.py` tests label-preserving whitespace augmentation. Its acceptance rule was fixed before execution: native AUC within 0.0005 of the selected blend and whitespace-collapsed AUC >= 0.98. No augmented candidate passes, so the original blend is retained. The strongest native-text augmented candidate scores 0.997503 native / 0.978602 collapsed; the original blend scores 0.997975 / 0.877512. Formatting dependence is a material limitation despite high random-split AUC.
 
 `robustness.py` freezes settings before three secondary split checks (seeds 20261024/25/26), an ablation, and validation-text transformations. These secondary splits overlap model-selection data and are **stability checks**, not independent holdouts. Bootstrap intervals are conditional on the selected fitted model and exclude selection uncertainty. Nearest-neighbor filtering does not establish source/domain independence.
 
@@ -71,4 +75,4 @@ The report follows every Q0--Q6 response in the supplied assignment. Upload `out
 
 The repository contains incremental commits for the experimental pipeline, validation/robustness analysis, and final report/delivery. Review the local history with `git log --oneline -- submissions/group-number-11`.
 
-OpenAI Codex assisted with code implementation, experiment execution, diagnostics and report drafting. It trained the supplied data locally and checked outputs programmatically. No external LLM API labeled or predicted competition passages. Team-specific human contributions and manual reviews are not inferred; each member must confirm their actual contribution and verify the report before submission. The course PR URL and leaderboard scores are pending rather than invented.
+OpenAI Codex assisted with code implementation, experiment execution, diagnostics and report drafting. It trained the supplied data locally and checked outputs programmatically. No external LLM API labeled or predicted competition passages. The team reports that Yilin Gao led Q1 (model development), Ansh Raj Bhargava led Q3/Q5 (unlabeled data and improvements), and Yingzi Gu led Q2/Q4 (learning curves and error analysis). All three also trained models and explored stronger configurations. The implementation and runs in this rebuilt branch were assisted by Codex. Team members should verify the code and report before course submission. New-model leaderboard scores remain pending rather than invented.

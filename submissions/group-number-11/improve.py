@@ -28,6 +28,9 @@ def main():
     df=pd.read_csv(args.data/'train.csv');y=df.label.to_numpy()
     cache=joblib.load(ROOT/'artifacts/validation.joblib');tr=cache['train'];va=cache['val']
     selection=json.loads((ROOT/'results/selection.json').read_text())
+    if 'previous_selection' in selection:
+        selection['selected']=selection.pop('previous_selection')
+        selection['best']=selection.pop('previous_best')
     orig=cache['style'];start=time.perf_counter();flat=style_features(df.text.map(collapse));feature_seconds=time.perf_counter()-start
     yy=np.concatenate([y[tr],y[tr]])
     xx=np.concatenate([orig[tr],flat[tr]])

@@ -18,6 +18,9 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--data',type=Path,required=True);args=ap.parse_args()
     df=pd.read_csv(args.data/'train.csv');y=df.label.to_numpy();xs=style_features(df.text)
     selection=json.loads((ROOT/'results/selection.json').read_text())
+    if 'previous_selection' in selection:
+        selection['selected']=selection['previous_selection']
+        selection['best']=selection['previous_best']
     records=json.loads((ROOT/'results/experiments.json').read_text())
     config={k:next(r['config'] for r in records if r['name']==selection['best'][k]) for k in selection['best']}
     results=[]
