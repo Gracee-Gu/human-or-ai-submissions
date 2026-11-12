@@ -2,7 +2,7 @@ Title: [Submission] Group Number 11 - ab3396, yg695, yg667
 
 This submission rebuilds the team's text-authorship detector with one fixed stratified 2,000-row validation partition, reproducible word/character baselines, writing-style boosting and a selected ensemble. The final model is refit on all 10,000 supplied labeled examples and regenerates a 3,000-row `id,label` Kaggle file using the documented prediction command.
 
-The ensemble achieves 0.997975 validation AUROC. Formatting collapse reduces its AUC to 0.877512; the report documents this limitation and a whitespace-augmentation experiment that improves stress-test AUC to 0.978602 but fails its prespecified acceptance criterion. New-model Kaggle public/private scores remain pending; the previously reported public score 0.92433 belongs to an earlier model.
+The ensemble achieves 0.997975 validation AUROC. Formatting collapse reduces its AUC to 0.877512; the report documents this limitation and a whitespace-augmentation experiment that improves stress-test AUC to 0.978602 but fails its prespecified acceptance criterion. The team supplied a Kaggle screenshot reporting 0.96962 public AUROC for the new submission; private AUROC remains pending. The previous public score 0.92433 belongs to an earlier model.
 
 Validation includes the required model/hyperparameter comparisons, five training-set sizes, an unlabeled-data experiment, length subgroups, ten reviewed errors, near-duplicate checks and secondary split diagnostics. Submission schema, IDs, order, bounds, data hashes and row-order invariance were checked locally. Source, logs, editable report and figures are under `submissions/group-number-11/`; datasets, checkpoints and credentials are excluded.
 

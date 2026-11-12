@@ -34,10 +34,12 @@ def main():
     audit=json.loads((ROOT/'results/audit.json').read_text())
     for name,checksum in audit['data_sha256'].items():
         assert hashlib.sha256((args.data/name).read_bytes()).hexdigest()==checksum
+    metadata=json.loads((ROOT/'report_metadata.json').read_text())
     manifest={'submission_rows':len(submission),'columns':submission.columns.tolist(),
         'submission_sha256':hashlib.sha256(submission_path.read_bytes()).hexdigest(),
         'model_sha256':hashlib.sha256((ROOT/'artifacts/final.joblib').read_bytes()).hexdigest(),
-        'validation_auc':chosen['val_auc'],'kaggle_uploaded':False,
+        'validation_auc':chosen['val_auc'],'kaggle_uploaded':metadata.get('kaggle_uploaded_by_user',False),
+        'public_auc_user_reported':metadata.get('new_public_auc'),
         'prior_public_auc_user_reported':0.92433,
         'checks':'IDs, sample order, finite [0,1] probabilities, data hashes, fixed split, validation labels/AUC and blend weights passed.'}
     (ROOT/'results/delivery_manifest.json').write_text(json.dumps(manifest,indent=2))

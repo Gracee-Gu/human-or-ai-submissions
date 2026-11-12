@@ -44,8 +44,17 @@ def main():
         5498:'Ingredient quantities and procedural line breaks resemble human recipe formatting.'}
     pr=meta['pr_url']
     pr_text=r'\url{'+pr+'}' if pr else 'Pending: no course PR has been opened from this workspace.'
-    public=fmt(meta['new_public_auc']) if meta['new_public_auc'] is not None else 'Not yet submitted'
+    public=f"{meta['new_public_auc']:.5f}" if meta['new_public_auc'] is not None else 'Not yet submitted'
     private=fmt(meta['private_auc']) if meta['private_auc'] is not None else 'Not revealed'
+    interpretation=('The public AUROC '+public+' was supplied in a Kaggle screenshot by the team. '
+        f"It is {a['val_auc']-meta['new_public_auc']:.6f} below validation, so random-split performance is optimistic for the public subset. "
+        'Formatting sensitivity is a measured limitation, but the cause of the public gap is not established. Private performance remains unknown.'
+        if meta['new_public_auc'] is not None else
+        'A high in-distribution validation AUROC does not establish a 0.98--0.99 public or private score. Formatting sensitivity is a measured limitation. No new Kaggle result has been supplied.')
+    status=('The team uploaded the new-model CSV and reported public AUROC '+public+
+        '. The previous public score was 0.92433. Private results remain pending. See the title page for the draft PR.'
+        if meta.get('kaggle_uploaded_by_user') else
+        'The CSV and report are prepared locally; a new Kaggle upload and its results remain pending. See the title page for the draft PR.')
     parts=[r'''\documentclass[10pt,letterpaper]{article}
 \usepackage[margin=0.8in]{geometry}
 \usepackage[T1]{fontenc}
@@ -91,7 +100,7 @@ The output is a continuous AI-authorship score in $[0,1]$ for every test ID.
             ['Selected fixed validation',fmt(a['val_auc'])],
             ['Previous Kaggle public (user-reported, earlier model)',fmt(meta['previous_public_auc'])],
             ['New-model Kaggle public',public],['Kaggle private',private]],'Yr'),
-        r'''\textbf{Interpretation.} A high in-distribution validation AUROC does not establish a 0.98--0.99 public or private score. Test domains, generators and adversarial edits are hidden. Formatting sensitivity is a measured limitation, discussed below. No new Kaggle upload was performed during these experiments.
+        r'\textbf{Interpretation.} '+interpretation+r'''
 \newpage
 \section{Model comparison and selection}
 \q{Q1.1}{Preprocessing and representations.}
@@ -269,16 +278,16 @@ The augmentation follow-up measured a substantial robustness gain that still mis
 Commit hashes identify development history; inspect the hosted PR or use \texttt{git show HASH} locally.
 \q{Q6.3}{AI assistance and verification.}
 OpenAI Codex assisted with pipeline design, code, debugging, experiment execution, analysis and report drafting.
-Experiments were actually run locally on the supplied data; scores in this report are read from their logs.
+Experiments were run locally on the supplied data; offline scores come from their logs, while the public score was supplied by the team.
 Automated checks verify the fixed split, validation labels/AUC, data hashes, output IDs/order and finite probability bounds.
 No external LLM API was used to label or predict passages; no pretrained model weights or external supervised examples were used.
 The team supplied the individual roles recorded in Q0.1, and reports that all three members also trained models and explored stronger configurations.
 This describes the team's reported division of work, while the implementation and experiment execution in this rebuilt branch were assisted by Codex.
-Before course submission, the team needs to review the code and interpretations and enter the newly observed leaderboard result.
+Before course submission, the team needs to review the code, interpretations and latest leaderboard result.
 \vspace{.1in}
-\textbf{Sources.} The supplied \emph{Kaggle Competition Template Report} PDF/LaTeX provides the evaluation protocol and Q0--Q6 requirements; the course repository README provides the submission layout. All numerical findings are from the locally saved experiment logs. No external label source was consulted.
+\textbf{Sources.} The supplied \emph{Kaggle Competition Template Report} PDF/LaTeX provides the protocol and Q0--Q6 requirements; the course README provides the repository layout. Offline results come from saved experiment logs; public results were supplied by the team. No external label source was consulted.
 \vspace{.1in}
-\textbf{Submission status.} The new-model CSV and this report are prepared locally. The previous public score 0.92433 was reported by the user. New Kaggle upload and public/private results remain pending; they are not represented as completed. See the title page for the course PR status.
+\textbf{Submission status.} ''',status,r'''
 \end{document}
 '''])
     (ROOT/'report/main.tex').write_text('\n'.join(line.rstrip() for line in '\n'.join(parts).splitlines())+'\n')
