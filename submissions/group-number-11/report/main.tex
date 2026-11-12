@@ -42,12 +42,11 @@ Yingzi Gu & \texttt{yg667} \\
 \section*{Team information and model summary}
 \q{Q0.1}{Team and contributions.}Yilin Gao (yg695) led model development and comparison (Q1): data inspection, the shared split, representations, baseline comparisons and tuning. Ansh Raj Bhargava (ab3396) led the unlabeled-data and improvement experiments (Q3 and Q5). Yingzi Gu (yg667) led learning curves, subgroup evaluation and error analysis (Q2 and Q4). All three members also trained models and explored stronger configurations. These roles were supplied by the team; the implementation and experiment execution in this rebuilt branch were assisted by Codex.
 \q{Q0.2}{Final approach.}
-The language-feature parent $p_L$ blends a GPT-2/statistics LightGBM (75\%) with the original word/character/style ensemble (25\%).
-A second model $p_R$ fine-tunes the upper four blocks of generic RoBERTa on the fixed 8,000-row training partition, using random token crops and first/last-window inference.
-Their conservative hybrid is $p_N=\sigma(0.9\,\mathrm{logit}(p_L)+0.1\,\mathrm{logit}(p_R))$, with probabilities clipped before logit conversion.
-Tree components are refitted on all 10,000 labels after selection; RoBERTa keeps its held-out checkpoint, with no validation-label training.
-All pretrained models run locally; no external authorship labels or hosted prediction APIs are used.
-The final score is $\sigma(0.75\,\mathrm{logit}(p_N)+0.25\,\mathrm{logit}(p_M))$. The additional detector uses frozen small/medium GPT-2 statistics, their differences and ratios, and the same local style features.
+The final score is $\sigma(0.75\,\mathrm{logit}(p_N)+0.25\,\mathrm{logit}(p_M))$, where $p_N=\sigma(0.9\,\mathrm{logit}(p_L)+0.1\,\mathrm{logit}(p_R))$ and probabilities are clipped before logit conversion.
+The parent $p_L$ blends a GPT-2/statistics LightGBM (75\%) with the original word/character/style ensemble (25\%).
+The neural branch $p_R$ fine-tunes the upper four RoBERTa blocks on 8,000 training rows, with random token crops and first/last-window inference.
+The detector $p_M$ combines frozen small/medium GPT-2 statistics and local style features with label-free within-format score alignment.
+A fixed 2,000-row holdout selects the configurations; tree components are then refitted on all 10,000 labels while RoBERTa retains its held-out checkpoint, and all models run locally without external authorship labels or hosted prediction APIs.
 \q{Q0.3}{Recorded scores.}
 \par\noindent
 \begin{tabularx}{\linewidth}{@{}Yr@{}}
@@ -101,7 +100,7 @@ Style LightGBM & Leaves $\{7,15,31\}$; trees $\{300,700\}$ & 31 / 700 \\
 Seed 20261023 fixes a stratified 8,000/2,000 split. We compare 28 base settings and select the highest validation AUC within each representation.
 LightGBM uses learning rate 0.03, minimum child size 40, feature fraction 0.85 and L2 regularization 5.
 We evaluate 15 blend-grid entries: style weight $s\in\{0,.25,.5,.75,1\}$, with remaining weight divided between word and character components using $c\in\{0,.5,1\}$. Thus weights are $((1-s)(1-c),(1-s)c,s)$; pure-style endpoints repeat.
-No Kaggle feedback or test labels select settings. Reusing one validation set can still produce selection optimism.
+For this initial grid, settings were selected without Kaggle feedback or test labels; later public-feedback decisions are recorded separately. Reusing one validation set can still produce selection optimism.
 \q{Q1.4}{Final model choice and later changes.}
 The first rebuild achieved 0.96962 public AUROC. A format-robust candidate dropped to 0.95899, so it was rejected.
 Frozen language features then raised public AUC to 0.98665; a small RoBERTa logit contribution raised it to 0.98861.
@@ -276,12 +275,20 @@ A next experiment would canonicalize formatting throughout training and inferenc
 \url{https://github.com/sekhari/human-or-ai-submissions/pull/18}
 
 \textbf{Location:} \texttt{submissions/group-number-11/}.\par
-Initial CPU experiments used macOS arm64 and Python 3.14.2. Optimization added local Apple MPS feature extraction; exact added packages are in requirements-optimization.txt. Exact package versions are recorded in \texttt{environment.txt}; install dependencies from \texttt{requirements.txt}. Main split and model seed: 20261023. Secondary split seeds: 20261024, 20261025, 20261026. LightGBM has deterministic mode enabled; small numeric differences across platforms remain possible.
+Initial baseline versions are recorded in \texttt{environment.txt} and \texttt{requirements.txt}.
+For the final model, activate the project virtual environment and install \texttt{requirements-optimization.txt}; the exact added package versions are pinned there.
+The tested setup uses Python 3.14.2 on macOS arm64 with Apple MPS; CPU fallback is available but slower.
+The split/tree seed is 20261023 and the neural seed is 20261111; supplementary split seeds are 20261024--20261026.
+The reproduction command trains/evaluates the components; the prediction command below regenerates the CSV from their cached inference outputs without reselecting weights or reading validation labels.
 \begin{quote}\footnotesize\begin{verbatim}
+pip install -r submissions/group-number-11/requirements-optimization.txt
 DATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 bash submissions/group-number-11/reproduce_final.sh "$DATA_DIR"
+python submissions/group-number-11/predict_final.py \
+  --data "$DATA_DIR" \
+  --out submissions/group-number-11/output/submission.csv
 \end{verbatim}\end{quote}
-The final reproduction entrypoint runs the parent detector, local neural training, held-out checkpoint selection, inference and the scored blend. Cached predictions can be reblended with the documented prediction command. The README documents supplementary diagnostics and report generation. Data, model checkpoints and intermediate feature caches remain local and are excluded from Git.
+The reproduction script recreates the components; \texttt{predict\_final.py} writes the frozen blend from cached inference outputs. Data, model weights and caches are excluded from Git.
 \q{Q6.2}{Development history and lessons.}\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
 \item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/e31a805}{e31a805}: Build fixed-holdout text and stylometric training pipeline
 \item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/09c05b0}{09c05b0}: Test format-robust classifiers and document negative public result
@@ -292,9 +299,7 @@ OpenAI Codex assisted with pipeline design, code, debugging, experiment executio
 Experiments were run locally on the supplied data; offline scores come from their logs, while the public score was supplied by the team.
 Automated checks verify the fixed split, validation labels/AUC, data hashes, output IDs/order and finite probability bounds.
 No hosted LLM API labeled or predicted passages. Optimization used generic GPT-2 weights locally and fine-tuned upper RoBERTa blocks using only supplied labels; additional neural experiments are recorded in the optimization logs. No external authorship labels were used.
-The team supplied the individual roles recorded in Q0.1, and reports that all three members also trained models and explored stronger configurations.
-This describes the team's reported division of work, while the implementation and experiment execution in this rebuilt branch were assisted by Codex.
-Before course submission, the team needs to review the code, interpretations and latest leaderboard result.
+Team-reported roles appear in Q0.1; the team must review the submitted code and interpretations.
 \vspace{.1in}
 \textbf{Sources.} The supplied \emph{Kaggle Competition Template Report} PDF/LaTeX provides the protocol and Q0--Q6 requirements; the course README provides the repository layout. Offline results come from saved experiment logs; public results were supplied by the team. No external label source was consulted.
 \vspace{.1in}

@@ -48,6 +48,8 @@ Generic pretrained language weights run locally; no external authorship labels o
         r'\textbf{Interpretation.} The public result comes from the team\textquotesingle s Kaggle submission report. It is '+
         fmt(analysis['val_auc']-best['public_auc'])+' below validation. Repeated holdout selection and hidden-domain differences limit generalization claims; private performance remains unknown.')
     text=text.replace('Selected three-component blend','Initial three-component blend')
+    text=text.replace('No Kaggle feedback or test labels select settings.',
+        'For this initial grid, settings were selected without Kaggle feedback or test labels; later public-feedback decisions are recorded separately.')
     between(r'\q{Q1.4}',r'\newpage',r'''\q{Q1.4}{Final model choice and later changes.}
 The initial three-component blend scored 0.997975 validation / 0.96962 public AUROC.
 A format-robust follow-up scored 0.995598 / 0.95899, so it was rejected despite strong synthetic stress results.
@@ -158,7 +160,12 @@ All pretrained models run locally; no external authorship labels or hosted predi
             delivery=json.loads((ROOT/'results/optimization/medium_v4_delivery.json').read_text());choice=delivery['selected'];w=choice['second_weight']
             operation=(f"The final score averages {1-w:.2f} of $p_N$ with {w:.2f} of a second language-feature detector $p_M$." if choice['method']=='plain' else
                 f"The final score is $\\sigma({1-w:.2f}\\,\\mathrm{{logit}}(p_N)+{w:.2f}\\,\\mathrm{{logit}}(p_M))$.")
-            hybrid_summary+= '\n'+operation+' The additional detector uses frozen small/medium GPT-2 statistics, their differences and ratios, and the same local style features.'
+            hybrid_summary=r'''\q{Q0.2}{Final approach.}
+The final score is $\sigma(0.75\,\mathrm{logit}(p_N)+0.25\,\mathrm{logit}(p_M))$, where $p_N=\sigma(0.9\,\mathrm{logit}(p_L)+0.1\,\mathrm{logit}(p_R))$ and probabilities are clipped before logit conversion.
+The parent $p_L$ blends a GPT-2/statistics LightGBM (75\%) with the original word/character/style ensemble (25\%).
+The neural branch $p_R$ fine-tunes the upper four RoBERTa blocks on 8,000 training rows, with random token crops and first/last-window inference.
+The detector $p_M$ combines frozen small/medium GPT-2 statistics and local style features with label-free within-format score alignment.
+A fixed 2,000-row holdout selects the configurations; tree components are then refitted on all 10,000 labels while RoBERTa retains its held-out checkpoint, and all models run locally without external authorship labels or hosted prediction APIs.'''
         between(r'\q{Q0.2}',r'\q{Q0.3}',hybrid_summary)
         between(r'\q{Q1.4}',r'\newpage',r'''\q{Q1.4}{Final model choice and later changes.}
 The first rebuild achieved 0.96962 public AUROC. A format-robust candidate dropped to 0.95899, so it was rejected.
@@ -191,8 +198,16 @@ More targeted training-only symbolic-text augmentation could be tested, but was 
 The small public subset and repeated model selection still limit conclusions about unseen generators and private performance.''')
         start=text.index(r'\begin{quote}',text.index(r'\q{Q6.1}'));end=text.index(r'\end{quote}',start)+len(r'\end{quote}')
         script='reproduce_final.sh' if best['candidate']=='medium_v4' else 'reproduce_neural.sh'
-        commands='\\begin{quote}\\footnotesize\\begin{verbatim}\nDATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text\nbash submissions/group-number-11/'+script+' "$DATA_DIR"\n\\end{verbatim}\\end{quote}'
+        commands='\\begin{quote}\\footnotesize\\begin{verbatim}\npip install -r submissions/group-number-11/requirements-optimization.txt\nDATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text\nbash submissions/group-number-11/'+script+' "$DATA_DIR"\n'
+        if best['candidate']=='medium_v4':
+            commands+='python submissions/group-number-11/predict_final.py \\\n  --data "$DATA_DIR" \\\n  --out submissions/group-number-11/output/submission.csv\n'
+        commands+='\\end{verbatim}\\end{quote}'
         text=text[:start]+commands+text[end:]
+        between('Initial CPU experiments used',r'\begin{quote}',r'''Initial baseline versions are recorded in \texttt{environment.txt} and \texttt{requirements.txt}.
+For the final model, activate the project virtual environment and install \texttt{requirements-optimization.txt}; the exact added package versions are pinned there.
+The tested setup uses Python 3.14.2 on macOS arm64 with Apple MPS; CPU fallback is available but slower.
+The split/tree seed is 20261023 and the neural seed is 20261111; supplementary split seeds are 20261024--20261026.
+The reproduction command trains/evaluates the components; the prediction command below regenerates the CSV from their cached inference outputs without reselecting weights or reading validation labels.''')
         text=text.replace('The \\texttt{reproduce\\_optimized.sh} entrypoint runs baseline fitting, frozen language-feature extraction, classifier search, final refitting and prediction.',
             'The final reproduction entrypoint runs the parent detector, local neural training, held-out checkpoint selection, inference and the scored blend. Cached predictions can be reblended with the documented prediction command.')
         text=text.replace('Optimization used generic GPT-2 pretrained weights locally;',
@@ -210,6 +225,12 @@ Plain and logit blends at neural weights 0/.05/.1/.15/.25/.5 were compared; 0.1 
         appendix=appendix.replace('the selected classifier stage took about 23 seconds','the language-parent classifier stage took about 23 seconds')
         appendix=appendix.replace('Plain blending won; inference does not use ranks or true labels.',
             'Plain blending won for the language parent. The later medium detector uses label-free conditional-rank alignment within observed blank-line groups; no true labels enter inference.')
+    between(r'\end{quote}',r'\q{Q6.2}',r'''\end{quote}
+The reproduction script recreates the components; \texttt{predict\_final.py} writes the frozen blend from cached inference outputs. Data, model weights and caches are excluded from Git.''')
+    text=text.replace('The team supplied the individual roles recorded in Q0.1, and reports that all three members also trained models and explored stronger configurations.\nThis describes the team\'s reported division of work, while the implementation and experiment execution in this rebuilt branch were assisted by Codex.\nBefore course submission, the team needs to review the code and interpretations and enter the newly observed leaderboard result.',
+        'Team-reported roles appear in Q0.1; the team must review the submitted code and interpretations.')
+    text=text.replace('The team supplied the individual roles recorded in Q0.1, and reports that all three members also trained models and explored stronger configurations.\nThis describes the team\'s reported division of work, while the implementation and experiment execution in this rebuilt branch were assisted by Codex.\nBefore course submission, the team needs to review the code, interpretations and latest leaderboard result.',
+        'Team-reported roles appear in Q0.1; the team must review the submitted code and interpretations.')
     compute_marker=appendix.index(r'\textbf{Compute and limitations.}')
     compute_note=appendix[compute_marker:]
     appendix=appendix[:compute_marker]
