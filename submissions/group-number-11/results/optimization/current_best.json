@@ -1,0 +1,9 @@
+{
+  "candidate": "language_v2",
+  "file": "submission_best_0.98665.csv",
+  "public_auc": 0.98665,
+  "validation_auc": 0.9997849999999999,
+  "sha256": "426b463d3d9789aa1b0159f1fecb45c0603721e06be61790f633a2898da68515",
+  "model": "artifacts/optimization/best_public_0.98665.joblib",
+  "source": "User-reported public score; no private results available."
+}

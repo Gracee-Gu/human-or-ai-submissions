@@ -83,11 +83,20 @@ def main():
         dtype=torch.float16 if device=='mps' else torch.float32).to(device)
     metadata={'model':args.model_id,'revision':revision,'device':device,'max_tokens':args.max_tokens,
               'features':NAMES,'labels_used':False,'normalization':'canonical whitespace' if args.canonicalize else 'decode escaped newlines/tabs; retain original formatting'}
+    metadata_path=args.output/'lm_metadata.json'
+    if metadata_path.exists():
+        previous=json.loads(metadata_path.read_text())
+        keys=['model','revision','max_tokens','normalization']
+        if any(previous.get(k)!=metadata.get(k) for k in keys) and any(args.output.glob('*_gpt2.npz')):
+            raise ValueError('Existing complete LM cache uses different settings; choose a fresh output directory.')
     (args.output/'lm_metadata.json').write_text(json.dumps(metadata,indent=2))
     for name in args.datasets:
         path=args.data/(name+'.csv');frame=pd.read_csv(path)
         target=args.output/(name+'_gpt2.npz')
         if target.exists():
+            cached=np.load(target)
+            if str(cached['data_sha256'])!=hashlib.sha256(path.read_bytes()).hexdigest():
+                raise ValueError('Existing LM cache belongs to different input data.')
             print('Already exists',target,flush=True);continue
         texts=frame.text.tolist()
         if args.canonicalize:texts=[re.sub(r'\s+',' ',normalize(t)).strip() for t in texts]

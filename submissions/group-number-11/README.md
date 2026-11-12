@@ -5,9 +5,25 @@ Kaggle team name: **Group Number 11**. Branch: `Group11retry`.
 
 Fork: [Gracee-Gu/human-or-ai-submissions](https://github.com/Gracee-Gu/human-or-ai-submissions/tree/Group11retry). Course draft PR: [#18](https://github.com/sekhari/human-or-ai-submissions/pull/18).
 
-## Result and artifacts
+## Current best: public AUROC 0.98665
 
-The selected blend achieves **0.997975 validation AUROC** on the fixed, stratified 2,000-row holdout. The team supplied a Kaggle screenshot reporting **0.96962 public AUROC** for the new submission on November 11, 2026, up from the previous user-reported **0.92433**. The validation-to-public gap is 0.028355; its cause is not established, and private AUROC remains unknown. The user uploaded the CSV; this code did not make an automated Kaggle submission.
+The team reported **0.98665 Kaggle public AUROC** for `output/submission_language_v2.csv` on November 11, 2026. The matching backup is `output/submission_best_0.98665.csv`; its SHA256 is `426b463d3d9789aa1b0159f1fecb45c0603721e06be61790f633a2898da68515`. Private results are not available. The later format-only candidate scored 0.95899 and was rejected.
+
+This model blends 75% of an expanded-style + frozen GPT-2-statistics LightGBM with 25% of the reference ensemble described below. Its fixed validation AUROC is **0.999785**. All trainable classifiers use only supplied labels; the generic pretrained GPT-2 weights run locally. No hosted prediction API or external authorship labels are used. The full method, source revision, negative results and grouped diagnostics are recorded in `OPTIMIZATION.md`, `results/optimization/`, and the updated report.
+
+For the optimized environment and full reproduction, run from the repository root:
+
+```bash
+pip install -r submissions/group-number-11/requirements-optimization.txt
+bash submissions/group-number-11/reproduce_optimized.sh \
+  cornell-tech-cs-5785-combined-2026-ai-vs-human-text
+```
+
+The final model bundle is `artifacts/optimization/language_v2.joblib`; frozen LM caches are under `artifacts/optimization/lm/`. Both are generated locally and excluded from Git. This pipeline has additional GPU/CPU feature-extraction cost; CPU fallback is supported but slower. `predict_optimized.py` validates LM cache data hashes and writes predictions in sample-submission order. The reference `predict.py` below reproduces the earlier 0.96962 baseline.
+
+## Reference baseline and artifacts
+
+The reference baseline achieves **0.997975 validation AUROC** on the fixed, stratified 2,000-row holdout. The team supplied a Kaggle screenshot reporting **0.96962 public AUROC** for the new submission on November 11, 2026, up from the previous user-reported **0.92433**. The validation-to-public gap is 0.028355; its cause is not established, and private AUROC remains unknown. The user uploaded the CSV; this code did not make an automated Kaggle submission.
 
 - `output/submission.csv`: final probabilities for all 3,000 test IDs, in sample order (local; excluded from Git).
 - `artifacts/final.joblib`: locally trained model, refit on all 10,000 labeled examples (excluded from Git).
@@ -17,7 +33,7 @@ The selected blend achieves **0.997975 validation AUROC** on the fixed, stratifi
 
 ## Setup
 
-Run commands from the repository root. After setup, `bash submissions/group-number-11/reproduce.sh DATA_DIR` runs the full pipeline. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training, no GPU/pretrained weights/external model services. Python 3.14.2 reproduces the tested environment; other Python versions require compatible package wheels. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
+Run commands from the repository root. After setup, `bash submissions/group-number-11/reproduce.sh DATA_DIR` runs the full pipeline. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training for the reference baseline, without pretrained weights; the optimized pipeline above adds local frozen language weights. Python 3.14.2 reproduces the tested environment; other Python versions require compatible package wheels. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
 
 ```bash
 python3 -m venv .venv
@@ -42,7 +58,7 @@ python submissions/group-number-11/analyze.py \
 
 `train.py` reserves a fixed stratified 2,000-row validation set using seed **20261023** and fits all supervised representations and classifiers only on the remaining 8,000 rows. The starter file is not added as extra data. Models use text only; IDs are solely identifiers. We compare word/character logistic regression, linear SVM, NB-weighted logistic regression, and gradient boosting on writing-style features. The fixed grid searches LR/SVM C in {0.1, 1, 4, 16}, NB-LR C in {0.1, 1, 4}, and style boosting leaves in {7, 15, 31} with {300, 700} trees. For each representation, validation AUC chooses a component; a 15-entry blend grid (including repeated pure-style endpoints) chooses the final weights.
 
-The final blend is 0.125 word SVM (C=1), 0.125 character LR (C=16), and 0.75 style LightGBM (31 leaves, 700 trees). The SVM margin is mapped through a sigmoid; this is **not** calibrated probability estimation. The ensemble probabilities are optimized for ranking/AUROC, not individual authorship certainty.
+The reference blend is 0.125 word SVM (C=1), 0.125 character LR (C=16), and 0.75 style LightGBM (31 leaves, 700 trees). The SVM margin is mapped through a sigmoid; this is **not** calibrated probability estimation. The ensemble probabilities are optimized for ranking/AUROC, not individual authorship certainty.
 
 The learning curve uses word LR C=4 with a freshly fitted vocabulary at each of 500/1,000/2,000/5,000/8,000 labeled examples. The unlabeled experiment learns word vocabulary and IDF on 8,000 training + 3,000 unlabeled texts and trains LR C=4 only on true training labels. It excludes validation text/labels and test text from fitting and does not improve validation AUC, so it is not used in the final model.
 
@@ -77,4 +93,4 @@ The report follows every Q0--Q6 response in the supplied assignment. Upload `out
 
 The repository contains incremental commits for the experimental pipeline, validation/robustness analysis, and final report/delivery. Review the local history with `git log --oneline -- submissions/group-number-11`.
 
-OpenAI Codex assisted with code implementation, experiment execution, diagnostics and report drafting. It trained the supplied data locally and checked outputs programmatically. No external LLM API labeled or predicted competition passages. The team reports that Yilin Gao led Q1 (model development), Ansh Raj Bhargava led Q3/Q5 (unlabeled data and improvements), and Yingzi Gu led Q2/Q4 (learning curves and error analysis). All three also trained models and explored stronger configurations. The implementation and runs in this rebuilt branch were assisted by Codex. Team members should verify the code and report before course submission. The new public score is user-reported; private results remain pending.
+OpenAI Codex assisted with code implementation, experiment execution, diagnostics and report drafting. It trained the supplied data locally and checked outputs programmatically. No external LLM API labeled or predicted competition passages. The optimization session uses generic GPT-2 weights locally and separately records a RoBERTa fine-tuning experiment; no external authorship labels are used. The team reports that Yilin Gao led Q1 (model development), Ansh Raj Bhargava led Q3/Q5 (unlabeled data and improvements), and Yingzi Gu led Q2/Q4 (learning curves and error analysis). All three also trained models and explored stronger configurations. The implementation and runs in this rebuilt branch were assisted by Codex. Team members should verify the code and report before course submission. The new public score is user-reported; private results remain pending.

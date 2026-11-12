@@ -3,8 +3,22 @@ import argparse,hashlib,json
 from pathlib import Path
 import joblib,numpy as np,pandas as pd
 from advanced_features import expanded_features,canonical,combine_lm_matrices
-from features import style_features
+from features import style_features,normalize
 from train import ROOT,probability
+
+
+def conservative_blend(new, baseline, texts, weight, method):
+    if method=='conditional_rank':
+        from scipy.stats import rankdata
+        groups=np.array(['\n\n' in normalize(t) for t in texts])
+        calibrated=new.copy()
+        for group in [False,True]:
+            mask=groups==group;size=int(mask.sum())
+            if size<2:continue
+            quantiles=(rankdata(new[mask],method='average')-.5)/size
+            calibrated[mask]=np.quantile(baseline[mask],quantiles)
+        new=calibrated
+    return weight*baseline+(1-weight)*new
 
 
 def component_predict(component, texts, lm=None):
@@ -46,6 +60,9 @@ def main():
     p=np.zeros(len(frame))
     for c in bundle['components']:p+=c['weight']*component_predict(c,frame.text.tolist(),lm)
     assert abs(sum(c['weight'] for c in bundle['components'])-1)<1e-9
+    if bundle.get('conservative_blend'):
+        blend=bundle['conservative_blend'];base=component_predict({'kind':'baseline','components':blend['baseline_components']},frame.text.tolist())
+        p=conservative_blend(p,base,frame.text.tolist(),blend['baseline_weight'],blend['method'])
     assert np.isfinite(p).all() and ((p>=0)&(p<=1)).all()
     result=sample[['id']].merge(pd.DataFrame({'id':frame.id,'label':p}),on='id',validate='one_to_one',sort=False)
     args.out.parent.mkdir(exist_ok=True,parents=True);result.to_csv(args.out,index=False)

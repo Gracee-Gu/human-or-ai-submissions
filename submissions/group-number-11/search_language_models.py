@@ -8,9 +8,10 @@ import argparse,json,time
 from pathlib import Path
 import joblib,numpy as np,pandas as pd
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 from advanced_features import load_lm_matrix
 from search_optimization import get_features,model_for
-from train import ROOT
+from train import ROOT,SEED
 
 
 def main():
@@ -18,13 +19,14 @@ def main():
     ap.add_argument('--lm-dirs',nargs='+',default=['lm']);ap.add_argument('--name',default='language_small')
     ap.add_argument('--no-lm',action='store_true');args=ap.parse_args()
     art=ROOT/'artifacts/optimization';out=ROOT/'results/optimization';df=pd.read_csv(args.data/'train.csv');y=df.label.to_numpy()
-    original=joblib.load(art/'search.joblib');tr=original['tr'];va=original['va'];features=get_features(df,art/'rich_train.joblib')
+    tr,va=train_test_split(np.arange(len(df)),test_size=2000,stratify=y,random_state=SEED)
+    features=get_features(df,art/'rich_train.joblib')
     lm=None if args.no_lm else load_lm_matrix(art,'train',args.lm_dirs)
     invariant=args.no_lm or all(json.loads((art/d/'lm_metadata.json').read_text())['normalization']=='canonical whitespace' for d in args.lm_dirs)
     configurations=[]
     for view in ['native','raw_flat','canonical']:
         for leaves in [7,15,31]:configurations.append({'view':view,'kind':'lgb','leaves':leaves})
-        for depth in [5,7]:configurations.append({'view':view,'kind':'cat','depth':depth})
+        for depth in [5]:configurations.append({'view':view,'kind':'cat','depth':depth})
     results=[];models={};predictions={};variants=['raw','flat','single','double']
     for config in configurations:
         if lm is not None:config.update(lm=True,lm_dirs=args.lm_dirs)

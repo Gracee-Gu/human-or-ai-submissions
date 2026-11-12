@@ -48,3 +48,14 @@ python submissions/group-number-11/search_language_models.py --data DATA_DIR \
 ```
 
 Native-format LM features must be recomputed on transformed passages before claiming full-pipeline format robustness. Scripts flag style-only stress tests that keep native LM features fixed. Canonicalized LM extraction is invariant to whitespace transformations by construction.
+
+
+## Confirmed improved candidate: language_v2
+
+The team reported **0.98665 public AUROC** for `submission_language_v2.csv`, compared with 0.96962 for the first rebuild. The submission SHA256 is `426b463d3d9789aa1b0159f1fecb45c0603721e06be61790f633a2898da68515`. The matched controlled validation AUC is 0.999785, with 5 FP and 13 FN at threshold 0.5. A conditional 1,000-replicate bootstrap interval is [0.999595, 0.999924]; it excludes selection and distribution-shift uncertainty.
+
+The selected model is 75% LightGBM on 279 style features + 26 frozen GPT-2 features, and 25% of the earlier ensemble. It uses paired original/collapsed style views, 31 leaves and 700 trees. In those feature-level augmentations, LM features retain original text, so synthetic style-view scores are not full end-to-end LM stress results.
+
+After the negative public result, the next finite selection grid required native AUC >= 0.9975 and at least 25% baseline weight. It maximized .75 times AUC among texts without blank lines plus .25 times overall AUC. Plain and label-free within-format conditional-rank blending were compared at baseline weights .25/.5/.75; **plain blending won**. No individual hidden labels were accessed. Public feedback was used to reject robust_v1 and confirm the new language-feature candidate.
+
+`reproduce_optimized.sh` provides a standalone training/feature extraction/search/refit/predict entrypoint. The baseline versions remain intact. The user-reported best and candidate checksums are in `results/optimization/current_best.json` and the candidate delivery manifests.

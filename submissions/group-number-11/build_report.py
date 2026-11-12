@@ -291,6 +291,9 @@ Before course submission, the team needs to review the code, interpretations and
 \end{document}
 '''])
     (ROOT/'report/main.tex').write_text('\n'.join(line.rstrip() for line in '\n'.join(parts).splitlines())+'\n')
+    if meta.get('optimization_final'):
+        from report_optimization import upgrade_report
+        upgrade_report(meta)
     print(ROOT/'report/main.tex')
 
 
