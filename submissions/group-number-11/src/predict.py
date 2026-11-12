@@ -5,14 +5,14 @@ import joblib
 import numpy as np
 import pandas as pd
 from features import style_features
-from train import probability
+from train import ROOT, probability
 
 
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--test',type=Path,required=True)
     ap.add_argument('--sample',type=Path,required=True)
-    ap.add_argument('--model',type=Path,default=Path(__file__).resolve().parent/'artifacts/final.joblib')
+    ap.add_argument('--model',type=Path,default=ROOT/'artifacts/final.joblib')
     ap.add_argument('--out',type=Path,required=True)
     args=ap.parse_args();df=pd.read_csv(args.test);sample=pd.read_csv(args.sample)
     if df.id.duplicated().any() or sample.id.duplicated().any() or set(df.id)!=set(sample.id):

@@ -17,7 +17,7 @@ from sklearn.metrics import roc_auc_score, log_loss
 from features import normalize, vectorizer, style_features
 
 SEED = 20261023
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def classifier(kind, c):

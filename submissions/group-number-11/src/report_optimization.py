@@ -90,8 +90,8 @@ Language features reduced total threshold errors from 31 to 18, but some initial
     command_start=text.index(r'\begin{quote}',text.index(r'\q{Q6.1}'));command_end=text.index(r'\end{quote}',command_start)+len(r'\end{quote}')
     commands=r'''\begin{quote}\small\begin{verbatim}
 DATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-bash submissions/group-number-11/reproduce_optimized.sh "$DATA_DIR"
-python submissions/group-number-11/predict_optimized.py \
+bash submissions/group-number-11/scripts/reproduce_optimized.sh "$DATA_DIR"
+python submissions/group-number-11/src/predict_optimized.py \
   --test "$DATA_DIR/test.csv" \
   --sample "$DATA_DIR/sample_submission.csv" \
   --model submissions/group-number-11/artifacts/optimization/language_v2.joblib \
@@ -197,7 +197,7 @@ The mechanism descriptions are hypotheses based on observed text, not causal int
 More targeted training-only symbolic-text augmentation could be tested, but was not assumed to work.
 The small public subset and repeated model selection still limit conclusions about unseen generators and private performance.''')
         start=text.index(r'\begin{quote}',text.index(r'\q{Q6.1}'));end=text.index(r'\end{quote}',start)+len(r'\end{quote}')
-        script='reproduce_final.sh' if best['candidate']=='medium_v4' else 'reproduce_neural.sh'
+        script='reproduce_final.sh' if best['candidate']=='medium_v4' else 'scripts/reproduce_neural.sh'
         commands='\\begin{quote}\\footnotesize\\begin{verbatim}\npip install -r submissions/group-number-11/requirements-optimization.txt\nDATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text\nbash submissions/group-number-11/'+script+' "$DATA_DIR"\n'
         if best['candidate']=='medium_v4':
             commands+='python submissions/group-number-11/predict_final.py \\\n  --data "$DATA_DIR" \\\n  --out submissions/group-number-11/output/submission.csv\n'

@@ -251,13 +251,13 @@ CPU experiments used macOS arm64, Python 3.14.2 and four compute threads. Exact 
 \begin{quote}\small
 \begin{verbatim}
 DATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-python submissions/group-number-11/train.py \
+python submissions/group-number-11/src/train.py \
   --data "$DATA_DIR" --final
-python submissions/group-number-11/predict.py \
+python submissions/group-number-11/src/predict.py \
   --test "$DATA_DIR/test.csv" \
   --sample "$DATA_DIR/sample_submission.csv" \
   --out submissions/group-number-11/output/submission.csv
-python submissions/group-number-11/verify.py \
+python submissions/group-number-11/src/verify.py \
   --data "$DATA_DIR"
 \end{verbatim}
 \end{quote}

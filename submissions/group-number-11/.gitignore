@@ -5,3 +5,8 @@ report/*.aux
 report/*.log
 report/*.out
 report/*.synctex.gz
+report/*.fls
+report/*.fdb_latexmk
+report/*.xdv
+.pytest_cache/
+.ruff_cache/

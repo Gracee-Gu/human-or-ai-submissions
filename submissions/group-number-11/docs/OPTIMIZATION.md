@@ -1,5 +1,7 @@
 # Two-hour optimization session: November 11, 2026
 
+See the [main README](../README.md) for the final entrypoints and the [baseline notes](BASELINE.md) for the initial controlled experiments. All paths below are relative to the repository root.
+
 The baseline model and `output/submission_public_0.96962.csv` are retained. The public result 0.96962 was supplied by the team. All candidate data/model caches remain local under `artifacts/optimization/`, and experiment summaries are saved under `results/optimization/`.
 
 ## First candidate: robust_v1
@@ -13,10 +15,10 @@ The finite blend grid required native validation AUC >= 0.994, then maximized th
 To reproduce this comparison from the repository root:
 
 ```bash
-python submissions/group-number-11/search_optimization.py --data DATA_DIR
-python submissions/group-number-11/search_lexical.py --data DATA_DIR
-python submissions/group-number-11/blend_optimization.py --data DATA_DIR --name robust_v1 --final
-python submissions/group-number-11/predict_optimized.py \
+python submissions/group-number-11/src/search_optimization.py --data DATA_DIR
+python submissions/group-number-11/src/search_lexical.py --data DATA_DIR
+python submissions/group-number-11/src/blend_optimization.py --data DATA_DIR --name robust_v1 --final
+python submissions/group-number-11/src/predict_optimized.py \
   --test DATA_DIR/test.csv --sample DATA_DIR/sample_submission.csv \
   --model submissions/group-number-11/artifacts/optimization/robust_v1.joblib \
   --out submissions/group-number-11/output/submission_robust_v1.csv
@@ -28,7 +30,7 @@ python submissions/group-number-11/predict_optimized.py \
 
 The next hypothesis is that language predictability can add information beyond source-specific layout. The experiments use generic pretrained GPT-2 language-model weights locally, without external authorship labels or a remote prediction API. Supervised classifiers still use only the supplied training labels. No competition passage is sent to a hosted model endpoint.
 
-The optional environment is recorded separately in `requirements-optimization.txt`; it adds PyTorch/Transformers and CatBoost. The original baseline environment remains documented by `requirements.txt` and `environment.txt`.
+The final environment is recorded in `requirements-optimization.txt`; it adds PyTorch/Transformers and CatBoost. The original baseline environment remains documented by `requirements.txt` and `environment.txt`.
 
 Pinned weight sources:
 
@@ -38,12 +40,12 @@ Pinned weight sources:
 `lm_features.py` extracts NLL distribution statistics and token-rank fractions from a frozen model. The active runs use at most 256 tokens per passage and fixed padding buckets. A prior 512-token attempt reached the laptop MPS memory limit and produced no complete cache or model result. Incremental checkpoints were added so a restart preserves completed passages. Cached features are checked against the exact supplied data hash before inference.
 
 ```bash
-python submissions/group-number-11/lm_features.py --data DATA_DIR \
+python submissions/group-number-11/src/lm_features.py --data DATA_DIR \
   --output submissions/group-number-11/artifacts/optimization/lm \
   --model-id openai-community/gpt2 \
   --revision 607a30d783dfa663caf39e06633721c8d4cfcd7e \
   --max-tokens 256 --datasets train test
-python submissions/group-number-11/search_language_models.py --data DATA_DIR \
+python submissions/group-number-11/src/search_language_models.py --data DATA_DIR \
   --lm-dirs lm --name language_small
 ```
 

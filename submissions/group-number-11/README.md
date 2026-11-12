@@ -1,119 +1,88 @@
 # Group Number 11: Human or AI?
 
-Ansh Raj Bhargava (ab3396), Yilin Gao (yg695), Yingzi Gu (yg667).
-Kaggle team name: **Group Number 11**. Branch: `Group11retry`.
+**Ansh Raj Bhargava (ab3396), Yilin Gao (yg695), Yingzi Gu (yg667)**
 
-Fork: [Gracee-Gu/human-or-ai-submissions](https://github.com/Gracee-Gu/human-or-ai-submissions/tree/Group11retry). Course draft PR: [#18](https://github.com/sekhari/human-or-ai-submissions/pull/18).
+Kaggle team: **Group Number 11** · Branch: **Group11retry**
 
-## Final submission: public AUROC 0.98921
+[Team branch](https://github.com/Gracee-Gu/human-or-ai-submissions/tree/Group11retry) · [Course PR #18](https://github.com/sekhari/human-or-ai-submissions/pull/18)
 
-The team reported **0.98921 Kaggle public AUROC** for the final `medium_v4` submission on November 11, 2026. The final fixed validation AUROC is **0.999822**. Private results are not revealed. Model optimization is complete.
+## Final result and submission materials
 
-- Final Kaggle file: `output/submission.csv` (same bytes as `output/submission_medium_v4.csv`).
-- Final CSV SHA256: `ac75c035ad713459781168a1f475ef14bedff26e59657742f438391c70ddeef6`.
-- Final PDF / editable source: `report/main.pdf`, `report/main.tex`.
-- Overleaf project: `output/group11_overleaf.zip`.
-- Curated handoff: `output/Group_Number_11_final_materials.zip`.
-- Authoritative version/verification logs: `results/optimization/current_best.json`, `results/delivery_manifest.json`.
+The final model, **medium_v4**, achieved **0.98921 Kaggle public AUROC** (team-reported, November 11, 2026) and **0.999822 validation AUROC** on the shared 2,000-row holdout. Private results remain unknown. Model selection is complete.
 
-The final model is a 75%/25% logit blend of the scored neural hybrid and a second language-statistics detector. The neural hybrid itself blends 90% of the small-GPT-2/style parent and 10% locally fine-tuned RoBERTa in logit space. The additional detector uses frozen small/medium GPT-2 statistics plus local style features and label-free within-format score alignment. All trainable classifiers use only supplied labels. Tree models are refit on 10,000 labels; RoBERTa retains its 8,000-row, held-out-selected checkpoint. No hosted prediction API or external authorship labels are used.
+| Material | Location |
+| --- | --- |
+| Submission-ready report | [report/main.pdf](report/main.pdf) |
+| Editable LaTeX | [report/main.tex](report/main.tex) |
+| Kaggle probabilities | `output/submission.csv` (local) |
+| Overleaf project | `output/group11_overleaf.zip` (local) |
+| PDF, CSV and Overleaf handoff | `output/Group_Number_11_final_materials.zip` (local) |
+| Locked version and checks | [current_best.json](results/optimization/current_best.json), [delivery_manifest.json](results/delivery_manifest.json) |
 
-Public sequence (team-reported): earlier model 0.92433; first rebuild 0.96962; rejected robust model 0.95899; language-feature model 0.98665; neural hybrid 0.98861; final 0.98921. The small public subset and repeated validation selection limit private-score claims.
+The scored CSV SHA256 is `ac75c035ad713459781168a1f475ef14bedff26e59657742f438391c70ddeef6`. `output/submission_medium_v4.csv` is the same scored file. CSVs, input data, checkpoints and intermediate caches are excluded from Git; reproduce them with the commands below.
 
-On macOS, install the LightGBM runtime once with `brew install libomp`. Tectonic is optional for rebuilding the PDF. Run from the repository root in the optimized environment:
+## Setup and reproduction
+
+Run commands from the repository root. The tested environment is **Python 3.14.2, macOS arm64, 24 GiB RAM**; Apple MPS accelerates local language models. CPU fallback is supported but slower. On macOS, install the LightGBM runtime with `brew install libomp`. Tectonic is optional for rebuilding the PDF.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r submissions/group-number-11/requirements-optimization.txt
+```
+
+Place the original `train.csv`, `unlabeled.csv`, `test.csv` and `sample_submission.csv` together in a local data directory. This command trains/evaluates the components, extracts language features, and writes the final submission. It also rebuilds the report and handoff when Tectonic is available.
+
+```bash
 bash submissions/group-number-11/reproduce_final.sh \
   cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 ```
 
-This trains/extracts all components and regenerates the CSV, diagnostics and report. Apple MPS was used locally; CPU fallback is supported but slower. Generic pretrained weights are downloaded from pinned public Hugging Face revisions. Large inputs, weights and feature/prediction caches remain local and are excluded from Git.
-
-After component inference, regenerate the frozen final score without retuning or reading training labels:
+Generic pretrained weights are downloaded from pinned Hugging Face revisions. Full reproduction is substantially slower than reblending cached predictions. After component inference, these stable entrypoints regenerate and verify the final CSV:
 
 ```bash
 python submissions/group-number-11/predict_final.py \
   --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text \
   --out submissions/group-number-11/output/submission.csv
 python submissions/group-number-11/verify_final.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
+  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text \
+  --require-scored-hash
 ```
 
-`predict_final.py` consumes the component predictions produced by the training/inference pipeline. The scored original was checked with `--require-scored-hash`; fresh cross-platform retraining may have small numerical differences. `reproduce_optimized.sh` and `reproduce_neural.sh` retain the earlier reference versions. The report explicitly separates the common 0.5 threshold diagnostics from the 0.4 threshold used to obtain five final-model FP and FN examples; Kaggle uses continuous scores.
+Prediction reads cached component outputs and recorded weights; it does not retune or read training/validation labels. Verification checks all 3,000 test IDs, sample order, finite scores in [0, 1], CSV identity, validation labels and AUROC. The original scored file passed the strict hash check. Fresh retraining on a different platform can produce numerical differences; omit `--require-scored-hash` when checking such a new run. Kaggle receives continuous `id,label` scores, with `label` representing P(AI).
 
-## Reference baseline and artifacts
+## Method and validation
 
-The reference baseline achieves **0.997975 validation AUROC** on the fixed, stratified 2,000-row holdout. The team supplied a Kaggle screenshot reporting **0.96962 public AUROC** for the new submission on November 11, 2026, up from the previous user-reported **0.92433**. The validation-to-public gap is 0.028355; its cause is not established, and private AUROC remains unknown. The user uploaded the CSV; this code did not make an automated Kaggle submission.
+The final score is a 75%/25% logit blend of the neural hybrid and a second language-statistics detector. The hybrid combines 90% small-GPT-2/style scores and 10% locally fine-tuned RoBERTa scores in logit space. The second detector uses small/medium GPT-2 statistics, style features, LightGBM and label-free score alignment within formatting groups. [Optimization notes](docs/OPTIMIZATION.md) record model revisions, settings and the measured public-score sequence, including the rejected candidate.
 
-- `output/submission_baseline.csv`: reference baseline probabilities for all 3,000 test IDs, in sample order (local; excluded from Git).
-- `artifacts/final.joblib`: locally trained model, refit on all 10,000 labeled examples (excluded from Git).
-- `report/main.tex`, `report/main.pdf`: editable Overleaf source and compiled report.
-- `output/group11_overleaf.zip`: upload-ready LaTeX project (local).
-- `results/`: actual experiments, fixed split, validation predictions, robustness diagnostics and data checksums. CSV evaluation logs contain IDs/results, not passages, and are generated locally (ignored by Git).
+All required controlled experiments use the same stratified **8,000/2,000** split, seed **20261023**. Representations/classifiers fit training rows only during evaluation. Final tree components refit 10,000 labeled rows; RoBERTa retains its held-out-selected 8,000-row checkpoint (seed **20261111**). Supplementary split seeds are 20261024–20261026. The [baseline notes](docs/BASELINE.md) document model comparisons, hyperparameter grids, learning curves and the unlabeled-data experiment. Repeated holdout/public selection and distribution shift limit claims about private performance.
 
-## Baseline setup
+## Repository map
 
-Run commands from the repository root. After setup, `bash submissions/group-number-11/reproduce.sh DATA_DIR` runs the full pipeline. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training for the reference baseline, without pretrained weights; the optimized pipeline above adds local frozen language weights. Python 3.14.2 reproduces the tested environment; other Python versions require compatible package wheels. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
+| Directory / file | Purpose |
+| --- | --- |
+| `predict_final.py`, `verify_final.py`, `reproduce_final.sh` | Stable final entrypoints, matching the report |
+| `src/` | Training, features, prediction, analysis and report/packaging implementation |
+| `scripts/` | Reference baseline, language_v2 and neural_v3 reproduction runners |
+| `docs/` | Baseline protocol and optimization history |
+| `results/` | Committed experiment evidence; [index](results/README.md) |
+| `report/` | Final PDF, LaTeX and referenced figures |
+| `report_metadata.json` | Team roles, public-score records and report settings |
+| `requirements-optimization.txt` | Pinned final-model dependencies |
+| `requirements.txt`, `environment.txt` | Original baseline environment |
+| `artifacts/`, `output/` | Local models/caches and generated deliveries; ignored by Git |
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r submissions/group-number-11/requirements.txt
-```
-
-Keep the original Kaggle CSVs in `cornell-tech-cs-5785-combined-2026-ai-vs-human-text/` or substitute your own data-directory path. Do not commit the data, checkpoints or credentials.
-
-## Baseline experiments
-
-```bash
-OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/train.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text --final
-OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/robustness.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/improve.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text --final
-python submissions/group-number-11/analyze.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-```
-
-`train.py` reserves a fixed stratified 2,000-row validation set using seed **20261023** and fits all supervised representations and classifiers only on the remaining 8,000 rows. The starter file is not added as extra data. Models use text only; IDs are solely identifiers. We compare word/character logistic regression, linear SVM, NB-weighted logistic regression, and gradient boosting on writing-style features. The fixed grid searches LR/SVM C in {0.1, 1, 4, 16}, NB-LR C in {0.1, 1, 4}, and style boosting leaves in {7, 15, 31} with {300, 700} trees. For each representation, validation AUC chooses a component; a 15-entry blend grid (including repeated pure-style endpoints) chooses the final weights.
-
-The reference blend is 0.125 word SVM (C=1), 0.125 character LR (C=16), and 0.75 style LightGBM (31 leaves, 700 trees). The SVM margin is mapped through a sigmoid; this is **not** calibrated probability estimation. The ensemble probabilities are optimized for ranking/AUROC, not individual authorship certainty.
-
-The learning curve uses word LR C=4 with a freshly fitted vocabulary at each of 500/1,000/2,000/5,000/8,000 labeled examples. The unlabeled experiment learns word vocabulary and IDF on 8,000 training + 3,000 unlabeled texts and trains LR C=4 only on true training labels. It excludes validation text/labels and test text from fitting and does not improve validation AUC, so it is not used in the final model.
-
-`improve.py` tests label-preserving whitespace augmentation. Its acceptance rule was fixed before execution: native AUC within 0.0005 of the selected blend and whitespace-collapsed AUC >= 0.98. No augmented candidate passes, so the original blend is retained. The strongest native-text augmented candidate scores 0.997503 native / 0.978602 collapsed; the original blend scores 0.997975 / 0.877512. Formatting dependence is a material limitation despite high random-split AUC.
-
-`robustness.py` freezes settings before three secondary split checks (seeds 20261024/25/26), an ablation, and validation-text transformations. These secondary splits overlap model-selection data and are **stability checks**, not independent holdouts. Bootstrap intervals are conditional on the selected fitted model and exclude selection uncertainty. Nearest-neighbor filtering does not establish source/domain independence.
-
-## Regenerate the baseline CSV
+To regenerate the report and packages after an intentional content change:
 
 ```bash
-python submissions/group-number-11/predict.py \
-  --test cornell-tech-cs-5785-combined-2026-ai-vs-human-text/test.csv \
-  --sample cornell-tech-cs-5785-combined-2026-ai-vs-human-text/sample_submission.csv \
-  --out submissions/group-number-11/output/submission_baseline.csv
-python submissions/group-number-11/verify.py \
-  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-```
-
-Upload `output/submission.csv` manually once Kaggle allows another submission. The columns are exactly `id,label`; label is P(AI). Do not threshold predictions. No external hidden labels were used or retrieved.
-
-## Report / Overleaf
-
-```bash
-python submissions/group-number-11/build_report.py
+python submissions/group-number-11/src/build_report.py
 (cd submissions/group-number-11/report && tectonic main.tex)
-python submissions/group-number-11/package.py
+python submissions/group-number-11/src/package.py
+python submissions/group-number-11/src/package_delivery.py
 ```
 
-The report follows every Q0--Q6 response in the supplied assignment. Upload `output/group11_overleaf.zip` to Overleaf after packaging with `python submissions/group-number-11/package.py`. Overleaf uses pdfLaTeX; the project includes the generated figures. Re-run report generation/compilation/packaging after adding the verified PR URL, leaderboard scores or team contribution details to `report_metadata.json`.
+## Team contributions and AI disclosure
 
-## Development history and AI disclosure
+Yilin Gao led Q1 (model development); Ansh Raj Bhargava led Q3/Q5 (unlabeled data and improvements); Yingzi Gu led Q2/Q4 (learning curves and error analysis). All three also trained models and explored configurations. Teammates should work on `Group11retry`, pull the latest commits before editing, and push their reviewed contributions to this branch.
 
-The repository contains incremental commits for the experimental pipeline, validation/robustness analysis, and final report/delivery. Review the local history with `git log --oneline -- submissions/group-number-11`.
-
-OpenAI Codex assisted with code implementation, experiment execution, diagnostics and report drafting. It trained the supplied data locally and checked outputs programmatically. No external LLM API labeled or predicted competition passages. The optimization session uses generic GPT-2 weights locally and separately records a RoBERTa fine-tuning experiment; no external authorship labels are used. The team reports that Yilin Gao led Q1 (model development), Ansh Raj Bhargava led Q3/Q5 (unlabeled data and improvements), and Yingzi Gu led Q2/Q4 (learning curves and error analysis). All three also trained models and explored stronger configurations. The implementation and runs in this rebuilt branch were assisted by Codex. Team members should verify the code and report before course submission. The new public score is user-reported; private results remain pending.
+OpenAI Codex assisted with implementation, local experiment execution, diagnostics and report drafting. All authorship supervision uses supplied labels. Generic GPT-2/RoBERTa weights run locally; no hosted prediction API or external authorship labels are used. Automated checks cover data hashes, split/label alignment, metrics, output schema and scored-file identity. The team should review the code and interpretations before course submission. Incremental development history is preserved in `git log --oneline -- submissions/group-number-11`.
