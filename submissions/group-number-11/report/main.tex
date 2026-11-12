@@ -42,26 +42,27 @@ Yingzi Gu & \texttt{yg667} \\
 \section*{Team information and model summary}
 \q{Q0.1}{Team and contributions.}Yilin Gao (yg695) led model development and comparison (Q1): data inspection, the shared split, representations, baseline comparisons and tuning. Ansh Raj Bhargava (ab3396) led the unlabeled-data and improvement experiments (Q3 and Q5). Yingzi Gu (yg667) led learning curves, subgroup evaluation and error analysis (Q2 and Q4). All three members also trained models and explored stronger configurations. These roles were supplied by the team; the implementation and experiment execution in this rebuilt branch were assisted by Codex.
 \q{Q0.2}{Final approach.}
-The final detector combines 279 local writing-style features with 26 frozen GPT-2 language-predictability statistics.
-A 31-leaf LightGBM learns on supplied labels using original and whitespace-collapsed style views; the language features retain their original-text values in this feature-level augmentation.
-The final score is 75\% of this new model plus 25\% of the initial word/character/style ensemble.
-Selection uses the original fixed 2,000-row validation split, followed by refitting the tree models on all 10,000 labeled passages.
-Generic pretrained language weights run locally; no external authorship labels or hosted prediction APIs are used.
+The language-feature parent $p_L$ blends a GPT-2/statistics LightGBM (75\%) with the original word/character/style ensemble (25\%).
+A second model $p_R$ fine-tunes the upper four blocks of generic RoBERTa on the fixed 8,000-row training partition, using random token crops and first/last-window inference.
+Their conservative hybrid is $p_N=\sigma(0.9\,\mathrm{logit}(p_L)+0.1\,\mathrm{logit}(p_R))$, with probabilities clipped before logit conversion.
+Tree components are refitted on all 10,000 labels after selection; RoBERTa keeps its held-out checkpoint, with no validation-label training.
+All pretrained models run locally; no external authorship labels or hosted prediction APIs are used.
+The final score is $\sigma(0.75\,\mathrm{logit}(p_N)+0.25\,\mathrm{logit}(p_M))$. The additional detector uses frozen small/medium GPT-2 statistics, their differences and ratios, and the same local style features.
 \q{Q0.3}{Recorded scores.}
 \par\noindent
 \begin{tabularx}{\linewidth}{@{}Yr@{}}
 \toprule
 Metric & AUROC \\ \midrule
-Final fixed validation & 0.999785 \\
+Final fixed validation & 0.999822 \\
 Initial public (earlier team model) & 0.92433 \\
 First rebuild public & 0.96962 \\
-Final optimized public (team-reported) & 0.98665 \\
+Final optimized public (team-reported) & 0.98921 \\
 Kaggle private & Not revealed \\
 \bottomrule
 \end{tabularx}
 
 \par
-\textbf{Interpretation.} The public result comes from the team\textquotesingle s Kaggle submission report. It is 0.013135 below validation. Repeated holdout selection and hidden-domain differences limit generalization claims; private performance remains unknown.
+\textbf{Interpretation.} The public result comes from the team\textquotesingle s Kaggle submission report. It is 0.010612 below validation. Repeated holdout selection and hidden-domain differences limit generalization claims; private performance remains unknown.
 \newpage
 \section{Model comparison and selection}
 \q{Q1.1}{Preprocessing and representations.}
@@ -102,13 +103,13 @@ LightGBM uses learning rate 0.03, minimum child size 40, feature fraction 0.85 a
 We evaluate 15 blend-grid entries: style weight $s\in\{0,.25,.5,.75,1\}$, with remaining weight divided between word and character components using $c\in\{0,.5,1\}$. Thus weights are $((1-s)(1-c),(1-s)c,s)$; pure-style endpoints repeat.
 No Kaggle feedback or test labels select settings. Reusing one validation set can still produce selection optimism.
 \q{Q1.4}{Final model choice and later changes.}
-The initial three-component blend scored 0.997975 validation / 0.96962 public AUROC.
-A format-robust follow-up scored 0.995598 / 0.95899, so it was rejected despite strong synthetic stress results.
-Adding frozen language statistics then improved the selected blend to 0.999785 validation / 0.98665 public AUROC.
-The final setting uses original and collapsed style views, 31 leaves, 700 trees, learning rate 0.03 and L2 regularization 5.
-The unchanged baseline retains 25\% weight as a conservative anchor.
-This was a later change motivated by measured public and validation evidence, not hidden individual labels.
-The appendix records the new search, pretrained source, grouped checks and compute cost; the initial comparison above is retained for context. Scores optimize ranking and are not calibrated authorship certainties.
+The first rebuild achieved 0.96962 public AUROC. A format-robust candidate dropped to 0.95899, so it was rejected.
+Frozen language features then raised public AUC to 0.98665; a small RoBERTa logit contribution raised it to 0.98861.
+The final selected submission scores 0.999822 validation / 0.98921 public AUROC.
+These later changes add complementary representations while retaining a large contribution from the previously scored detector.
+The neural-only validation AUC was 0.979583, so sophistication alone did not justify replacing the stronger parent.
+Small blend gains on the reused validation partition are not statistically decisive; public feedback is recorded separately and private performance is unknown.
+The appendix records the pretrained sources, training schedules, blend search and compute cost. Scores optimize ranking, not calibrated authorship certainty.
 \newpage
 \section{Effect of training data size}
 \q{Q2.1}{Controlled learning curve.}
@@ -168,9 +169,10 @@ A future self-training experiment would need a fixed confidence rule, comparison
 \newpage
 \section{Generalization and error analysis}
 \q{Q4.1}{Final training--validation gap and uncertainty.}
-The final selected model has training AUC 1.000000 and validation AUC 0.999785. These scores use the controlled 8,000/2,000 fit before full-data refitting. A 1,000-replicate stratified bootstrap gives [0.999595, 0.999924], conditional on the selected fitted model; it excludes selection and distribution-shift uncertainty.
-No exact texts cross the split. Two validation passages have nearest-training word-TF-IDF cosine similarity at least 0.90; removing them yields AUC 0.999785. This is not a complete shared-source audit.
+The final selected model has training AUC 1.000000 and validation AUC 0.999822. These scores use the controlled 8,000/2,000 fit before full-data refitting. A 1,000-replicate stratified bootstrap gives [0.999629, 0.999948], conditional on the selected fitted model; it excludes selection and distribution-shift uncertainty.
+No exact texts cross the split. Two validation passages have nearest-training word-TF-IDF cosine similarity at least 0.90; removing them yields AUC 0.999822. This is not a complete shared-source audit.
 The public AUC is lower than random-split AUC. That observed gap, and the failed robust candidate, caution against treating a near-perfect holdout as a universal authorship detector.
+The training AUC is exactly rank-certified from bounded, clipped-logit ensemble scores; this avoids unnecessary full neural inference on the training partition. The certificate and bounds are saved with the analysis.
 \q{Q4.2}{Final observable text-length subgroups.}
 We count whitespace-delimited words after decoding escaped newlines and keep the original bins, independent of labels and model predictions.
 
@@ -178,8 +180,8 @@ We count whitespace-delimited words after decoding escaped newlines and keep the
 \begin{tabularx}{\linewidth}{@{}Yrrr@{}}
 \toprule
 Words & Count & Human / AI & AUROC \\ \midrule
-0 <= words < 150 & 380 & 146 / 234 & 0.999766 \\
-150 <= words < 250 & 1049 & 605 / 444 & 0.999773 \\
+0 <= words < 150 & 380 & 146 / 234 & 0.999854 \\
+150 <= words < 250 & 1049 & 605 / 444 & 0.999814 \\
 words >= 250 & 571 & 249 / 322 & 0.999888 \\
 \bottomrule
 \end{tabularx}
@@ -187,40 +189,44 @@ words >= 250 & 571 & 249 / 322 & 0.999888 \\
 \par
 All three bins have AUC near 1.0. Unequal group sizes and tiny differences do not establish a reliable subgroup advantage. These length groups do not test new generators or domains; the appendix adds unsupervised topic/style-cluster checks, which are also only proxies.
 \begin{center}\includegraphics[width=\linewidth]{diagnostics_optimized.pdf}\end{center}
-\q{Q4.3}{Final errors at threshold 0.5.}The confusion matrix is TN=995, FP=5, FN=13, TP=987, with accuracy 0.9910. A false positive is human text scored at least 0.5; a false negative is AI text scored below 0.5. The next page shows the five highest-scoring false positives and five lowest-scoring false negatives. These deliberately extreme cases are not a representative error sample.
+\q{Q4.3}{Final-model error review.}The final confusion matrix is TN=996, FP=4, FN=12, TP=988, with accuracy 0.9920. These counts use threshold 0.5. For the required five-FP/five-FN case review we use threshold 0.40, yielding 6 FP and 10 FN. This review threshold is stated explicitly and does not change AUROC or the continuous Kaggle predictions. The next page shows the five highest-scoring human false positives and five lowest-scoring AI false negatives under that review threshold.
 \newpage
 {\Large\bfseries\color{navy}Generalization: concrete errors}\par
-The observed content descriptions below come from reviewing the supplied validation passages. Proposed explanations are hypotheses; we did not intervene on each passage to establish causation.
+All error labels below use the declared review threshold 0.40. The descriptions come from reviewing the supplied validation passages. Proposed explanations are hypotheses; we did not intervene on each passage to establish causation.
 
+
+\par\noindent
 
 \par\noindent
 \begin{tabularx}{\linewidth}{@{}rrrY@{}}
 \toprule
-ID & Type & P(AI) & Observed content and possible failure mechanism \\ \midrule
-2696 & FP & 0.9095 & Human-labeled forum text repeats long phrases extensively; repetition is a plausible misleading generation cue. \\
-9585 & FP & 0.6964 & Fluent encyclopedia biography with repeated names, dates and media titles resembles generated reference prose. \\
-6138 & FP & 0.6805 & Formal historical description with many named entities overlaps the style of generated summaries. \\
-7384 & FP & 0.6012 & Very short film review with broad judgments; limited text makes style estimates uncertain. \\
-6404 & FP & 0.5049 & Informal first-person self-report with unusual spelling and contractions; its score is close to the threshold. \\
-7049 & FN & 0.0578 & Recipe quantities, bullets and personal restaurant commentary resemble human recipe/blog material. \\
-3457 & FN & 0.0689 & Quoted, line-wrapped academic abstract looks like source material; formatting and vocabulary may mask authorship cues. \\
-9298 & FN & 0.1134 & Biography-like prose with dates, names and irregular spacing resembles human reference writing. \\
-3061 & FN & 0.1965 & Quoted parenting discussion uses informal, personal language that resembles human forum text. \\
-1689 & FN & 0.2014 & Dense mathematical notation and code fences are poorly represented by English predictability statistics. \\
+ID & Error & Final P(AI) & Observed content / hypothesis \\ \midrule
+2696 & FP & 0.9277 & Human-labeled forum text repeats long phrases extensively; repetition is a plausible misleading generation cue. \\
+7384 & FP & 0.6066 & Very short film review with broad judgments; limited text makes style estimates uncertain. \\
+6138 & FP & 0.5737 & Formal historical description with many named entities overlaps the style of generated summaries. \\
+9585 & FP & 0.5156 & Fluent encyclopedia biography with repeated names, dates and media titles resembles generated reference prose. \\
+921 & FP & 0.4244 & Formal definitional exposition repeats abstract concepts and resembles generated explanatory prose. \\
+7049 & FN & 0.0995 & Recipe quantities, bullets and personal restaurant commentary resemble human recipe/blog material. \\
+3457 & FN & 0.1625 & Quoted, line-wrapped academic abstract looks like source material; formatting and vocabulary may mask authorship cues. \\
+9298 & FN & 0.2005 & Biography-like prose with dates, names and irregular spacing resembles human reference writing. \\
+3061 & FN & 0.2301 & Quoted parenting discussion uses informal, personal language that resembles human forum text. \\
+1689 & FN & 0.2664 & Dense mathematical notation and code fences are poorly represented by English predictability statistics. \\
 \bottomrule
 \end{tabularx}
 
 \par
 
 
-\q{Q4.4}{Recurring final-model failures.}
-The five human errors include repetitive forum language, two reference-style descriptions, a short review and an informal self-report.
-AI misses include a recipe, an academic abstract, a biography, parenting discussion and symbolic mathematics.
-Thus neither fluent reference prose nor conversational or technical irregularity uniquely identifies authorship.
-The highly repetitive human example also shows why a predictability signal cannot establish generation on its own.
-These are observations about the selected examples; the proposed mechanisms are hypotheses, not causal tests or recovered source/generator identities.
-Additional training-only symbolic-text augmentation or a representation better suited to mathematics could be tested next.
-Language features reduced total threshold errors from 31 to 18, but some initial errors remain, and the public subset still performs below the matched validation pool.
+\par
+
+
+\q{Q4.4}{Recurring errors and changes after blending.}
+The reviewed cases include repetitive human wording, reference/review prose and structured exposition, alongside AI content with recipe, academic, reference and conversational framing.
+These genres overlap across labels: predictability, conversational irregularity and technical notation do not uniquely identify authorship.
+The final model has 16 total errors at the common threshold 0.5, compared with 18 for the language parent and 31 for the first rebuild. The ten detailed examples use the separately declared review threshold.
+The mechanism descriptions are hypotheses based on observed text, not causal interventions or recovered generator identities.
+More targeted training-only symbolic-text augmentation could be tested, but was not assumed to work.
+The small public subset and repeated model selection still limit conclusions about unseen generators and private performance.
 \newpage
 \section{Open-ended improvements and insights}
 \q{Q5.1}{Hypothesis.}
@@ -273,30 +279,19 @@ A next experiment would canonicalize formatting throughout training and inferenc
 Initial CPU experiments used macOS arm64 and Python 3.14.2. Optimization added local Apple MPS feature extraction; exact added packages are in requirements-optimization.txt. Exact package versions are recorded in \texttt{environment.txt}; install dependencies from \texttt{requirements.txt}. Main split and model seed: 20261023. Secondary split seeds: 20261024, 20261025, 20261026. LightGBM has deterministic mode enabled; small numeric differences across platforms remain possible.
 \begin{quote}\footnotesize\begin{verbatim}
 DATA_DIR=cornell-tech-cs-5785-combined-2026-ai-vs-human-text
-bash submissions/group-number-11/reproduce_optimized.sh "$DATA_DIR"
-python submissions/group-number-11/predict_optimized.py \
-  --test "$DATA_DIR/test.csv" \
-  --sample "$DATA_DIR/sample_submission.csv" \
-  --model submissions/group-number-11/artifacts/optimization/language_v2.joblib \
-  --out submissions/group-number-11/output/submission_language_v2.csv
+bash submissions/group-number-11/reproduce_final.sh "$DATA_DIR"
 \end{verbatim}\end{quote}
-The \texttt{reproduce\_optimized.sh} entrypoint runs baseline fitting, frozen language-feature extraction, classifier search, final refitting and prediction. The README documents supplementary diagnostics and report generation. Data, model checkpoints and intermediate feature caches remain local and are excluded from Git.
-\q{Q6.2}{Development history and lessons.}
-
-\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+The final reproduction entrypoint runs the parent detector, local neural training, held-out checkpoint selection, inference and the scored blend. Cached predictions can be reblended with the documented prediction command. The README documents supplementary diagnostics and report generation. Data, model checkpoints and intermediate feature caches remain local and are excluded from Git.
+\q{Q6.2}{Development history and lessons.}\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
 \item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/e31a805}{e31a805}: Build fixed-holdout text and stylometric training pipeline
-\item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/cd956bc}{cd956bc}: Audit generalization and test whitespace augmentation for Group Number 11
-\item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/675a469}{675a469}: Record controlled experiments and deliver reproducible report and submission workflow
-\end{itemize}
-The initial pipeline established one reusable holdout and showed that style features outperform sparse lexical baselines on this data.
-The generalization audit showed that the score survives removing two high-similarity validation examples but fails a whitespace-collapse stress test.
-The augmentation follow-up measured a substantial robustness gain that still missed its predefined acceptance criterion. These lessons are recorded as actual experiments rather than retrospective claims that every change helped.
-Commit hashes identify development history; inspect the hosted PR or use \texttt{git show HASH} locally.
+\item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/09c05b0}{09c05b0}: Test format-robust classifiers and document negative public result
+\item \href{https://github.com/Gracee-Gu/human-or-ai-submissions/commit/f8c557e}{f8c557e}: Add frozen GPT-2 detector reaching 0.98665 public AUROC
+\end{itemize}The initial pipeline established the shared split and baseline comparisons. The format-robust follow-up showed that synthetic stress improvement did not transfer to public performance. The language-feature change then improved both the fixed validation score and the user-reported public score. These are actual development checkpoints; the experiments and their negative results are retained for review.
 \q{Q6.3}{AI assistance and verification.}
 OpenAI Codex assisted with pipeline design, code, debugging, experiment execution, analysis and report drafting.
 Experiments were run locally on the supplied data; offline scores come from their logs, while the public score was supplied by the team.
 Automated checks verify the fixed split, validation labels/AUC, data hashes, output IDs/order and finite probability bounds.
-No hosted LLM API labeled or predicted passages. Optimization used generic GPT-2 pretrained weights locally; additional neural experiments are recorded in the optimization logs. No external authorship labels were used.
+No hosted LLM API labeled or predicted passages. Optimization used generic GPT-2 weights locally and fine-tuned upper RoBERTa blocks using only supplied labels; additional neural experiments are recorded in the optimization logs. No external authorship labels were used.
 The team supplied the individual roles recorded in Q0.1, and reports that all three members also trained models and explored stronger configurations.
 This describes the team's reported division of work, while the implementation and experiment execution in this rebuilt branch were assisted by Codex.
 Before course submission, the team needs to review the code, interpretations and latest leaderboard result.
@@ -304,11 +299,13 @@ Before course submission, the team needs to review the code, interpretations and
 \textbf{Sources.} The supplied \emph{Kaggle Competition Template Report} PDF/LaTeX provides the protocol and Q0--Q6 requirements; the course README provides the repository layout. Offline results come from saved experiment logs; public results were supplied by the team. No external label source was consulted.
 \vspace{.1in}
 \textbf{Submission status.}
-The team reported public AUROC 0.98665 for the optimized submission, following 0.96962 for the first rebuild and 0.92433 for the earlier model. Private results remain pending. See the title page for the draft PR.
+The team reported public AUROC 0.98921 for the optimized submission, following 0.96962 for the first rebuild and 0.92433 for the earlier model. Private results remain pending. See the title page for the draft PR.
+
+\textbf{Compute and limitations.} Language-feature extraction took minutes on the local Apple GPU and is cached for reuse; the language-parent classifier stage took about 23 seconds with cached features. This is not directly comparable to the initial CPU feature-plus-fit timings. The final tree fits use all 10,000 true labeled rows after selection, with paired style views counted as augmentation rather than new independent data. Generic pretrained language knowledge is the only added external model resource. Public feedback was used to reject the robust candidate and confirm the language candidate; no hidden individual labels were accessed. The repeated holdout search and small public subset remain sources of selection uncertainty.
 
 \newpage
 \section*{Appendix: post-submission optimization (Q1/Q5/Q6 continuation)}
-\textbf{Measured sequence and selection.} The first format-robust candidate improved synthetic stress AUC but reduced public AUC, an informative negative result. The language-feature candidate was then selected using the original fixed holdout: retain at least 25\% baseline weight, require native AUC at least 0.9975, and maximize 0.75 times the no-blank-line subgroup AUC plus 0.25 times overall AUC. This focuses on passages without an easy paragraph cue. A finite grid compared baseline weights 0.25, 0.5 and 0.75, with plain or conditional-rank blending. Plain blending won; inference does not use ranks or true labels.
+\textbf{Measured sequence and selection.} The first format-robust candidate improved synthetic stress AUC but reduced public AUC, an informative negative result. The language-feature candidate was then selected using the original fixed holdout: retain at least 25\% baseline weight, require native AUC at least 0.9975, and maximize 0.75 times the no-blank-line subgroup AUC plus 0.25 times overall AUC. This focuses on passages without an easy paragraph cue. A finite grid compared baseline weights 0.25, 0.5 and 0.75, with plain or conditional-rank blending. Plain blending won for the language parent. The later medium detector uses label-free conditional-rank alignment within observed blank-line groups; no true labels enter inference.
 
 \par\noindent
 \begin{tabularx}{\linewidth}{@{}Yrr@{}}
@@ -317,6 +314,8 @@ Configuration & Validation AUC & Public AUC \\ \midrule
 First rebuild ensemble & 0.997975 & 0.96962 \\
 Robust format candidate & 0.995598 & 0.95899 \\
 GPT-2 statistics + baseline & 0.999785 & 0.98665 \\
+RoBERTa logit hybrid & 0.999805 & 0.98861 \\
+Medium-language hybrid & 0.999822 & 0.98921 \\
 \bottomrule
 \end{tabularx}
 
@@ -340,6 +339,12 @@ Fold & Style only & Style + GPT-2 \\ \midrule
 \par
 The small regression on fold 2 cautions against universal improvement claims. These clusters are proxies, and their folds overlap the original selection pool; they are not independent external confirmation.
 
-\textbf{Compute and limitations.} Language-feature extraction took minutes on the local Apple GPU and is cached for reuse; the selected classifier stage took about 23 seconds with cached features. This is not directly comparable to the initial CPU feature-plus-fit timings. The final tree fits use all 10,000 true labeled rows after selection, with paired style views counted as augmentation rather than new independent data. Generic pretrained language knowledge is the only added external model resource. Public feedback was used to reject the robust candidate and confirm the language candidate; no hidden individual labels were accessed. The repeated holdout search and small public subset remain sources of selection uncertainty.
+\textbf{Neural continuation.} The generic source is \href{https://huggingface.co/FacebookAI/roberta-base}{FacebookAI/roberta-base}.\par
+Revision: \texttt{e2da8e2f811d1448a5b465c236feacd80ffbac7b}.\par
+Embeddings and the lower eight encoder blocks are frozen; four upper blocks and a fresh classification head train on the 8,000 training examples. AdamW uses learning rates $2\cdot10^{-5}$ for the encoder and $10^{-4}$ for the head, weight decay 0.01, batch size 16 and seed 20261111.
+Canonicalized texts receive random 192-token crops; inference averages first/last windows. A budgeted two-epoch attempt stopped at step 861; validation chose checkpoint 750. The tree parent is later refitted on 10,000 rows, while the neural branch retains its 8,000-row checkpoint.
+Plain and logit blends at neural weights 0/.05/.1/.15/.25/.5 were compared; 0.1 logit blending won by validation AUC (0.999805 versus 0.999785). This tiny local difference is not conclusive evidence; the public result 0.98861 was supplied independently by the team.
+\textbf{Second language model.} Frozen \href{https://huggingface.co/openai-community/gpt2-medium}{GPT-2-medium} uses canonical whitespace and a 128-token prefix, alongside the small model's 256-token features. Their statistics, differences and normalized ratios give 104 language dimensions, not a same-context theoretical perplexity ratio. A native-view 31-leaf LightGBM uses these plus the 279 style features. Its scores receive label-free within-format quantile alignment to the reference detector, then 75\% aligned scores are combined with 25\% reference scores to form $p_M$. The final grid compares plain/logit weights .25/.5/.75 for $p_M$, retaining at least 25\% of the scored neural hybrid. A 25\% logit contribution wins. The rank mapping uses only predicted scores and observed blank-line groups, never true test labels.
+
 
 \end{document}

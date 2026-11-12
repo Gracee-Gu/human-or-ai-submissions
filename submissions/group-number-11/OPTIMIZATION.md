@@ -59,3 +59,14 @@ The selected model is 75% LightGBM on 279 style features + 26 frozen GPT-2 featu
 After the negative public result, the next finite selection grid required native AUC >= 0.9975 and at least 25% baseline weight. It maximized .75 times AUC among texts without blank lines plus .25 times overall AUC. Plain and label-free within-format conditional-rank blending were compared at baseline weights .25/.5/.75; **plain blending won**. No individual hidden labels were accessed. Public feedback was used to reject robust_v1 and confirm the new language-feature candidate.
 
 `reproduce_optimized.sh` provides a standalone training/feature extraction/search/refit/predict entrypoint. The baseline versions remain intact. The user-reported best and candidate checksums are in `results/optimization/current_best.json` and the candidate delivery manifests.
+
+
+## Locked final result and handoff
+
+The team reported **0.98861** public for the 10% RoBERTa logit hybrid, followed by **0.98921** for the final medium-language blend. Optimization stopped at the user's request. Final validation AUC is **0.999822**. The selected outer blend is 75% neural_v3 / 25% language_medium in logit space. The medium detector uses 104 small/medium LM statistics and contrasts, 279 style features, native-view LightGBM, and label-free within-format quantile alignment. Its small and medium contexts are 256 and 128 tokens respectively; the contrasts are learned statistics, not a same-context perplexity ratio.
+
+RoBERTa uses generic `FacebookAI/roberta-base` revision `e2da8e2f811d1448a5b465c236feacd80ffbac7b`. Embeddings/lower eight blocks are frozen; upper four/head train only on the original 8,000 rows. AdamW rates are 2e-5/1e-4, weight decay .01, batch 16, random 192-token crops and seed 20261111. Validation selected step 750 from the budgeted run, which stopped at step 861. Reproduction stops at step 750 while retaining the original 1,000-step learning-rate schedule. Inference averages the first and last windows.
+
+Final standard threshold-0.5 confusion counts are TN=996, FP=4, FN=12, TP=988. For five actual FP and five actual FN examples, the report declares review threshold 0.40 (FP=6, FN=10); Kaggle still receives continuous scores. Training AUC 1.0 is exactly certified by monotone clipped-logit bounds: every positive lower bound exceeds every negative upper bound. This is recorded transparently in `final_analysis.json` rather than represented as a full neural training-inference pass.
+
+`predict_final.py` uses recorded weights without reading validation labels; it exactly regenerated the scored CSV SHA256 `ac75c035ad713459781168a1f475ef14bedff26e59657742f438391c70ddeef6`. `verify_final.py` checks its identity and validation provenance. `reproduce_final.sh` recreates all trained components/caches and the final report. The curated materials ZIP excludes competition data and checkpoints. Private score remains unknown.

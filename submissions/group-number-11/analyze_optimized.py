@@ -14,7 +14,7 @@ from features import normalize
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--data',type=Path,required=True)
-    ap.add_argument('--candidate',default='language_v2');ap.add_argument('--search',default='language_small');args=ap.parse_args()
+    ap.add_argument('--candidate',default='language_v2');ap.add_argument('--search',default='language_small');ap.add_argument('--train-cache-only',action='store_true');args=ap.parse_args()
     art=ROOT/'artifacts/optimization';out=ROOT/'results/optimization';df=pd.read_csv(args.data/'train.csv')
     frame=pd.read_csv(art/(args.candidate+'_validation.csv'));y=frame.label.to_numpy();p=frame.probability.to_numpy()
     selected=json.loads((out/(args.candidate+'.json')).read_text());cache=joblib.load(art/(args.search+'.joblib'))
@@ -26,6 +26,9 @@ def main():
         fitted=original['models'][base_selection['best'][kind]];x=original['style'][tr] if kind=='style' else original['matrices'][kind][1]
         base_train+=w*probability(fitted,x)
     blend=selected['selected'];train_p=conservative_blend(train_p,base_train,df.text.iloc[tr].tolist(),blend['baseline_weight'],blend['method'])
+    np.savez_compressed(art/(args.candidate+'_train.npz'),ids=df.id.iloc[tr].to_numpy(),labels=df.label.iloc[tr].to_numpy(),probability=train_p)
+    if args.train_cache_only:
+        print('Saved controlled training predictions',args.candidate);return
     rng=np.random.default_rng(SEED);classes=[np.flatnonzero(y==k) for k in [0,1]];bootstrap=[]
     for _ in range(1000):
         ids=np.concatenate([rng.choice(c,len(c),replace=True) for c in classes]);bootstrap.append(roc_auc_score(y[ids],p[ids]))

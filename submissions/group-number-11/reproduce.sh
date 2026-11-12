@@ -10,7 +10,7 @@ python "$team_dir/robustness.py" --data "$data_dir"
 python "$team_dir/improve.py" --data "$data_dir" --final
 python "$team_dir/analyze.py" --data "$data_dir"
 python "$team_dir/predict.py" --test "$data_dir/test.csv" \
-  --sample "$data_dir/sample_submission.csv" --out "$team_dir/output/submission.csv"
+  --sample "$data_dir/sample_submission.csv" --out "$team_dir/output/submission_baseline.csv"
 python "$team_dir/verify.py" --data "$data_dir"
 python "$team_dir/build_report.py"
 if command -v tectonic >/dev/null 2>&1; then

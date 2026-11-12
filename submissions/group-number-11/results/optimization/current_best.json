@@ -1,9 +1,14 @@
 {
-  "candidate": "language_v2",
-  "file": "submission_best_0.98665.csv",
-  "public_auc": 0.98665,
-  "validation_auc": 0.9997849999999999,
-  "sha256": "426b463d3d9789aa1b0159f1fecb45c0603721e06be61790f633a2898da68515",
-  "model": "artifacts/optimization/best_public_0.98665.joblib",
-  "source": "User-reported public score; no private results available."
+  "candidate": "medium_v4",
+  "file": "submission.csv",
+  "scored_version": "submission_medium_v4.csv",
+  "public_auc": 0.98921,
+  "validation_auc": 0.999822,
+  "sha256": "ac75c035ad713459781168a1f475ef14bedff26e59657742f438391c70ddeef6",
+  "parents": [
+    "neural_v3",
+    "language_medium"
+  ],
+  "reproduction": "reproduce_final.sh",
+  "source": "User-reported Kaggle public result; private results unavailable."
 }

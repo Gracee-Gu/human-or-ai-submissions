@@ -1,37 +1,60 @@
-# Group 11: Human or AI?
+# Group Number 11: Human or AI?
 
 Ansh Raj Bhargava (ab3396), Yilin Gao (yg695), Yingzi Gu (yg667).
 Kaggle team name: **Group Number 11**. Branch: `Group11retry`.
 
 Fork: [Gracee-Gu/human-or-ai-submissions](https://github.com/Gracee-Gu/human-or-ai-submissions/tree/Group11retry). Course draft PR: [#18](https://github.com/sekhari/human-or-ai-submissions/pull/18).
 
-## Current best: public AUROC 0.98665
+## Final submission: public AUROC 0.98921
 
-The team reported **0.98665 Kaggle public AUROC** for `output/submission_language_v2.csv` on November 11, 2026. The matching backup is `output/submission_best_0.98665.csv`; its SHA256 is `426b463d3d9789aa1b0159f1fecb45c0603721e06be61790f633a2898da68515`. Private results are not available. The later format-only candidate scored 0.95899 and was rejected.
+The team reported **0.98921 Kaggle public AUROC** for the final `medium_v4` submission on November 11, 2026. The final fixed validation AUROC is **0.999822**. Private results are not revealed. Model optimization is complete.
 
-This model blends 75% of an expanded-style + frozen GPT-2-statistics LightGBM with 25% of the reference ensemble described below. Its fixed validation AUROC is **0.999785**. All trainable classifiers use only supplied labels; the generic pretrained GPT-2 weights run locally. No hosted prediction API or external authorship labels are used. The full method, source revision, negative results and grouped diagnostics are recorded in `OPTIMIZATION.md`, `results/optimization/`, and the updated report.
+- Final Kaggle file: `output/submission.csv` (same bytes as `output/submission_medium_v4.csv`).
+- Final CSV SHA256: `ac75c035ad713459781168a1f475ef14bedff26e59657742f438391c70ddeef6`.
+- Final PDF / editable source: `report/main.pdf`, `report/main.tex`.
+- Overleaf project: `output/group11_overleaf.zip`.
+- Curated handoff: `output/Group_Number_11_final_materials.zip`.
+- Authoritative version/verification logs: `results/optimization/current_best.json`, `results/delivery_manifest.json`.
 
-For the optimized environment and full reproduction, run from the repository root:
+The final model is a 75%/25% logit blend of the scored neural hybrid and a second language-statistics detector. The neural hybrid itself blends 90% of the small-GPT-2/style parent and 10% locally fine-tuned RoBERTa in logit space. The additional detector uses frozen small/medium GPT-2 statistics plus local style features and label-free within-format score alignment. All trainable classifiers use only supplied labels. Tree models are refit on 10,000 labels; RoBERTa retains its 8,000-row, held-out-selected checkpoint. No hosted prediction API or external authorship labels are used.
+
+Public sequence (team-reported): earlier model 0.92433; first rebuild 0.96962; rejected robust model 0.95899; language-feature model 0.98665; neural hybrid 0.98861; final 0.98921. The small public subset and repeated validation selection limit private-score claims.
+
+On macOS, install the LightGBM runtime once with `brew install libomp`. Tectonic is optional for rebuilding the PDF. Run from the repository root in the optimized environment:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r submissions/group-number-11/requirements-optimization.txt
-bash submissions/group-number-11/reproduce_optimized.sh \
+bash submissions/group-number-11/reproduce_final.sh \
   cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 ```
 
-The final model bundle is `artifacts/optimization/language_v2.joblib`; frozen LM caches are under `artifacts/optimization/lm/`. Both are generated locally and excluded from Git. This pipeline has additional GPU/CPU feature-extraction cost; CPU fallback is supported but slower. `predict_optimized.py` validates LM cache data hashes and writes predictions in sample-submission order. The reference `predict.py` below reproduces the earlier 0.96962 baseline.
+This trains/extracts all components and regenerates the CSV, diagnostics and report. Apple MPS was used locally; CPU fallback is supported but slower. Generic pretrained weights are downloaded from pinned public Hugging Face revisions. Large inputs, weights and feature/prediction caches remain local and are excluded from Git.
+
+After component inference, regenerate the frozen final score without retuning or reading training labels:
+
+```bash
+python submissions/group-number-11/predict_final.py \
+  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text \
+  --out submissions/group-number-11/output/submission.csv
+python submissions/group-number-11/verify_final.py \
+  --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
+```
+
+`predict_final.py` consumes the component predictions produced by the training/inference pipeline. The scored original was checked with `--require-scored-hash`; fresh cross-platform retraining may have small numerical differences. `reproduce_optimized.sh` and `reproduce_neural.sh` retain the earlier reference versions. The report explicitly separates the common 0.5 threshold diagnostics from the 0.4 threshold used to obtain five final-model FP and FN examples; Kaggle uses continuous scores.
 
 ## Reference baseline and artifacts
 
 The reference baseline achieves **0.997975 validation AUROC** on the fixed, stratified 2,000-row holdout. The team supplied a Kaggle screenshot reporting **0.96962 public AUROC** for the new submission on November 11, 2026, up from the previous user-reported **0.92433**. The validation-to-public gap is 0.028355; its cause is not established, and private AUROC remains unknown. The user uploaded the CSV; this code did not make an automated Kaggle submission.
 
-- `output/submission.csv`: final probabilities for all 3,000 test IDs, in sample order (local; excluded from Git).
+- `output/submission_baseline.csv`: reference baseline probabilities for all 3,000 test IDs, in sample order (local; excluded from Git).
 - `artifacts/final.joblib`: locally trained model, refit on all 10,000 labeled examples (excluded from Git).
 - `report/main.tex`, `report/main.pdf`: editable Overleaf source and compiled report.
 - `output/group11_overleaf.zip`: upload-ready LaTeX project (local).
 - `results/`: actual experiments, fixed split, validation predictions, robustness diagnostics and data checksums. CSV evaluation logs contain IDs/results, not passages, and are generated locally (ignored by Git).
 
-## Setup
+## Baseline setup
 
 Run commands from the repository root. After setup, `bash submissions/group-number-11/reproduce.sh DATA_DIR` runs the full pipeline. Tested on macOS arm64, Python 3.14.2, 24 GiB RAM; CPU training for the reference baseline, without pretrained weights; the optimized pipeline above adds local frozen language weights. Python 3.14.2 reproduces the tested environment; other Python versions require compatible package wheels. `environment.txt` records the exact versions used. On macOS, install the LightGBM OpenMP dependency with `brew install libomp`.
 
@@ -43,7 +66,7 @@ pip install -r submissions/group-number-11/requirements.txt
 
 Keep the original Kaggle CSVs in `cornell-tech-cs-5785-combined-2026-ai-vs-human-text/` or substitute your own data-directory path. Do not commit the data, checkpoints or credentials.
 
-## Reproduce training and evaluation
+## Baseline experiments
 
 ```bash
 OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 python submissions/group-number-11/train.py \
@@ -66,13 +89,13 @@ The learning curve uses word LR C=4 with a freshly fitted vocabulary at each of 
 
 `robustness.py` freezes settings before three secondary split checks (seeds 20261024/25/26), an ablation, and validation-text transformations. These secondary splits overlap model-selection data and are **stability checks**, not independent holdouts. Bootstrap intervals are conditional on the selected fitted model and exclude selection uncertainty. Nearest-neighbor filtering does not establish source/domain independence.
 
-## Generate the Kaggle CSV
+## Regenerate the baseline CSV
 
 ```bash
 python submissions/group-number-11/predict.py \
   --test cornell-tech-cs-5785-combined-2026-ai-vs-human-text/test.csv \
   --sample cornell-tech-cs-5785-combined-2026-ai-vs-human-text/sample_submission.csv \
-  --out submissions/group-number-11/output/submission.csv
+  --out submissions/group-number-11/output/submission_baseline.csv
 python submissions/group-number-11/verify.py \
   --data cornell-tech-cs-5785-combined-2026-ai-vs-human-text
 ```

@@ -24,6 +24,6 @@
   "kaggle_uploaded_by_user": true,
   "public_score_source": "User-provided Kaggle submission screenshot, November 11, 2026",
   "optimization_final": true,
-  "optimized_candidate": "language_v2",
-  "optimized_public_auc": 0.98665
+  "optimized_candidate": "medium_v4",
+  "optimized_public_auc": 0.98921
 }

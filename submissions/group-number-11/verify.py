@@ -13,7 +13,7 @@ from train import ROOT
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--data',type=Path,required=True);args=ap.parse_args()
     test=pd.read_csv(args.data/'test.csv');sample=pd.read_csv(args.data/'sample_submission.csv')
-    submission_path=ROOT/'output/submission.csv';submission=pd.read_csv(submission_path)
+    submission_path=ROOT/'output/submission_baseline.csv';submission=pd.read_csv(submission_path)
     assert submission.columns.tolist()==sample.columns.tolist()==['id','label']
     assert len(submission)==len(test)==3000
     assert submission.id.equals(sample.id)
@@ -42,7 +42,7 @@ def main():
         'public_auc_user_reported':metadata.get('new_public_auc'),
         'prior_public_auc_user_reported':0.92433,
         'checks':'IDs, sample order, finite [0,1] probabilities, data hashes, fixed split, validation labels/AUC and blend weights passed.'}
-    (ROOT/'results/delivery_manifest.json').write_text(json.dumps(manifest,indent=2))
+    (ROOT/'results/baseline_delivery_manifest.json').write_text(json.dumps(manifest,indent=2))
     print(json.dumps(manifest,indent=2))
 
 

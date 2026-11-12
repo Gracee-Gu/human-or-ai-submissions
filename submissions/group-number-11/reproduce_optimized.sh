@@ -19,3 +19,17 @@ python "$team_dir/predict_optimized.py" \
   --test "$data_dir/test.csv" --sample "$data_dir/sample_submission.csv" \
   --model "$team_dir/artifacts/optimization/language_v2.joblib" \
   --out "$team_dir/output/submission_language_v2.csv"
+if [[ "${2:-}" != "--no-report" ]]; then
+  python "$team_dir/analyze.py" --data "$data_dir"
+  active_candidate="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["candidate"])' "$team_dir/results/optimization/current_best.json")"
+  if [[ "$active_candidate" == "language_v2" ]]; then
+    python "$team_dir/analyze_optimized.py" --data "$data_dir" --candidate language_v2 --search language_small
+    python "$team_dir/build_report.py"
+    if command -v tectonic >/dev/null 2>&1; then
+      (cd "$team_dir/report" && tectonic main.tex)
+      python "$team_dir/package.py"
+    fi
+  else
+    python "$team_dir/analyze_optimized.py" --data "$data_dir" --candidate language_v2 --search language_small --train-cache-only
+  fi
+fi
